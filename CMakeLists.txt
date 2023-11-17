@@ -13,16 +13,16 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 
-if(DEFINED ENV{ANITA_UTIL_INSTALL_DIR})
-    message("ANITA_UTIL_INSTALL_DIR is set to $ENV{ANITA_UTIL_INSTALL_DIR}")
-    set(UTIL_LIB_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
-    set(UTIL_INC_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/include)
-    set(UTIL_BIN_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/bin)
-    set(UTIL_SHARE_DIR $ENV{ANITA_UTIL_INSTALL_DIR}/share)
-    set(LD_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/lib)
-    set(INC_UTIL $ENV{ANITA_UTIL_INSTALL_DIR}/include)
+if(DEFINED ENV{PUEO_UTIL_INSTALL_DIR})
+  message("PUEO_UTIL_INSTALL_DIR is set to $ENV{PUEO_UTIL_INSTALL_DIR}")
+    set(UTIL_LIB_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/lib)
+    set(UTIL_INC_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/include)
+    set(UTIL_BIN_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/bin)
+    set(UTIL_SHARE_DIR $ENV{PUEO_UTIL_INSTALL_DIR}/share)
+    set(LD_UTIL $ENV{PUEO_UTIL_INSTALL_DIR}/lib)
+    set(INC_UTIL $ENV{PUEO_UTIL_INSTALL_DIR}/include)
 else()
-    message("Will install to /usr/local  ANITA_UTIL_INSTALL_DIR not set")
+    message("Will install to /usr/local  PUEO_UTIL_INSTALL_DIR not set")
     set(UTIL_LIB_DIR /usr/local/lib)
     set(UTIL_INC_DIR /usr/local/include)
     set(UTIL_BIN_DIR /usr/local/bin)
@@ -45,25 +45,18 @@ link_directories(${UTIL_LIB_DIR})
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 
 message("ROOT_VERSION is set to ${ROOT_VERSION}")
-if( ${ROOT_VERSION} VERSION_GREATER "5.99/99")
-    message("Using ROOT_VERSION 6")
-    include(${ROOT_USE_FILE})
-else()
-#    include(RootNewMacros)
-     add_definitions(${ROOT_DEFINITIONS})	
-endif()
-
+include(${ROOT_USE_FILE})
 message("ROOT_INCLUDE_DIRS is set to ${ROOT_INCLUDE_DIRS}")
 
 
-include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/include ${FFTW_INCLUDES} ${ZLIB_INCLUDES} ${UTIL_INC_DIR})
+include_directories(${PROJECT_SOURCE_DIR} ${ROOT_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/src/ ${FFTW_INCLUDES} ${ZLIB_INCLUDES} ${UTIL_INC_DIR})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  ${ROOT_CXX_FLAGS}")
 
 file(GLOB HEADER_FILES
-    "include/*.h"    
+    "src/pueo/*.h"    
 )
 
-file(GLOB_RECURSE SOURCE_FILES src/*.cc)
+file(GLOB_RECURSE SOURCE_FILES "src/*.cc")
 
 set(DICTNAME G__${libname})
 
@@ -73,15 +66,13 @@ ROOT_GENERATE_DICTIONARY(${DICTNAME} ${HEADER_FILES} LINKDEF LinkDef.h)
 add_library(${libname} SHARED ${SOURCE_FILES} ${DICTNAME}.cxx)
 target_link_libraries(${libname} ${ZLIB_LIBRARIES} RootFftwWrapper AnitaEvent AnitaCorrelator AnitaAnalysis ${ROOT_LIBRARIES} ${FFTW_LIBRARIES})
 
-if( ${ROOT_VERSION} VERSION_GREATER "5.99.99")
-    add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
-endif()
+add_custom_target(${DICTNAME}.pcm DEPENDS ${DICTNAME})
 
 
 message("UTIL_INC_DIR is set to ${UTIL_INC_DIR}")
 message("DICTNAME is set to ${DICTNAME}" )
 
-install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR})
+install (FILES ${HEADER_FILES} DESTINATION ${UTIL_INC_DIR}/pueo)
 install (TARGETS ${libname}
 	ARCHIVE DESTINATION ${UTIL_LIB_DIR}
 	LIBRARY DESTINATION ${UTIL_LIB_DIR}
@@ -193,20 +184,21 @@ endmacro()
 
 
 
-do_driver(doWais)
-do_driver(doWaisA4)
-do_driver(doResolutions) 
-do_driver(doSummaryResolutions)
-do_driver(doCorrelationSummaryTree) 
-do_driver(doSimulated) 
-do_driver(doDecimated) 
-do_driver(doDecimatedNoFilter)
-do_driver(doLDB) 
-do_driver(doAll) 
-do_driver(evaluateFiltersA3) 
-do_driver(doGenerateSineSubCache)
-do_driver(eventTxtSaver)
-#do_driver(findEventsEv)
-do_driver(makeMinBiasAverage)
+
+#do_driver(doWais)
+#do_driver(doWaisA4)
+#do_driver(doResolutions) 
+#do_driver(doSummaryResolutions)
+#do_driver(doCorrelationSummaryTree) 
+#do_driver(doSimulated) 
+#do_driver(doDecimated) 
+#do_driver(doDecimatedNoFilter)
+#do_driver(doLDB) 
+#do_driver(doAll) 
+#do_driver(evaluateFiltersA3) 
+#do_driver(doGenerateSineSubCache)
+#do_driver(eventTxtSaver)
+##do_driver(findEventsEv)
+#do_driver(makeMinBiasAverage)
 
 
