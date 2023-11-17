@@ -1,23 +1,23 @@
-#include "CachedFC.h" 
+#include "pueo/CachedFC.h" 
 #include <iostream> 
 #include "Math/ProbFuncMathCore.h" 
 
 #if __cplusplus <= 199711L
 
 
-UCorrelator::CachedFC::CachedFC(double cl, int max_sig, double max_bg, double d_bg)
+pueo::UCorrelator::CachedFC::CachedFC(double cl, int max_sig, double max_bg, double d_bg)
   : fc(cl), interp(0); 
 {
   std::cerr << "CachedFC requires a C++11 compiler" << std::endl; 
 }
 
-double UCorrelator::CachedFC::upperLimit(int nsig, double bg) 
+double pueo::UCorrelator::CachedFC::upperLimit(int nsig, double bg) 
 {
   return -1; 
 
 }
 
-UCorrelator::CachedFC::~CachedFC() 
+pueo::UCorrelator::CachedFC::~CachedFC() 
 {
 }
 
@@ -25,7 +25,7 @@ UCorrelator::CachedFC::~CachedFC()
 
 #include "lazylookup.hh" 
 
-UCorrelator::CachedFC::CachedFC(double cl, int max_sig, double max_bg, double d_bg)
+pueo::UCorrelator::CachedFC::CachedFC(double cl, int max_sig, double max_bg, double d_bg)
   : fc(cl)
 {
 
@@ -44,14 +44,14 @@ UCorrelator::CachedFC::CachedFC(double cl, int max_sig, double max_bg, double d_
 
 }
 
-double UCorrelator::CachedFC::upperLimit(int nsig, double bg) 
+double pueo::UCorrelator::CachedFC::upperLimit(int nsig, double bg) 
 {
   double dsig= nsig; 
   return ( (lazylookup::grid_interpolator<2>*) interp)->val({dsig,bg}); 
 
 }
 
-UCorrelator::CachedFC::~CachedFC() 
+pueo::UCorrelator::CachedFC::~CachedFC() 
 {
   delete (lazylookup::grid_interpolator<2>*) interp; 
 }

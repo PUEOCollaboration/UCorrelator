@@ -1,31 +1,30 @@
-#include "SineSubtractCache.h"
+#include "pueo/SineSubtractCache.h"
 #include <iostream>
-#include "AnitaDataset.h"
+#include "pueo/Dataset.h"
 #include "TFile.h"
 #include "TTree.h"
-#include "FilteredAnitaEvent.h"
-#include "SineSubtractCache.h"
-#include "FilterStrategy.h"
-#include "RawAnitaHeader.h"
+#include "pueo/FilteredEvent.h"
+#include "pueo/FilterStrategy.h"
+#include "pueo/RawHeader.h"
 #include "TDirectory.h"
 
 
 const TString ssrTreeName = "sineSubResultTree";
 
-TString UCorrelator::SineSubtractCache::branchName(AnitaPol::AnitaPol_t pol, Int_t ant){
+TString pueo::UCorrelator::SineSubtractCache::branchName(pol::pol_t pol, Int_t ant){
   return TString::Format("ssr_%d_%d", (int)pol, ant);
 }
 
-TString UCorrelator::SineSubtractCache::fileName(const char* specDir, UInt_t hash, Int_t run){
-  int av = AnitaVersion::get();
-  return TString::Format("%s/sineSubResults_%u_anita%d_run%d.root", specDir, hash, av, run);
+TString pueo::UCorrelator::SineSubtractCache::fileName(const char* specDir, UInt_t hash, Int_t run){
+  int av = version::get();
+  return TString::Format("%s/sineSubResults_%u_pueo%d_run%d.root", specDir, hash, av, run);
 }
 
 
-void UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf){
+void pueo::UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf){
 
-  UCorrelator::SineSubtractFilter::setUseCache(false);
-  FFTtools::SineSubtractResult* results[AnitaPol::kNotAPol][NUM_SEAVEYS] = {{NULL}};
+  pueo::UCorrelator::SineSubtractFilter::setUseCache(false);
+  FFTtools::SineSubtractResult* results[pol::kNotAPol][k::NUM_HORNS] = {{NULL}};
   
   const char* ssDesc = ssf->description();
   if(!ssDesc){
@@ -41,7 +40,7 @@ void UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf)
     else{
 
       std::cout << "Info in " << __PRETTY_FUNCTION__ << ", will generate cached sine subtraction results!" << std::endl;
-      AnitaDataset d(run);
+      Dataset d(run);
 
       FilterStrategy fs;
       fs.addOperation(ssf);
@@ -50,9 +49,9 @@ void UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf)
       TTree* tOut = new TTree(ssrTreeName, ssrTreeName);
       UInt_t eventNumber = 0;
       tOut->Branch("eventNumber", &eventNumber);
-      for(int polInd=0; polInd < AnitaPol::kNotAPol; polInd++){
-        AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t) polInd;
-        for(int ant=0; ant < NUM_SEAVEYS; ant++){
+      for(int polInd=0; polInd < pol::kNotAPol; polInd++){
+        pol::pol_t pol = (pol::pol_t) polInd;
+        for(int ant=0; ant < k::NUM_HORNS; ant++){
           tOut->Branch(branchName(pol, ant), &results[pol][ant]);
         }
       }
@@ -64,11 +63,11 @@ void UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf)
       for(int entry=0; entry < d.N(); entry++){
         d.getEntry(entry);
 
-        FilteredAnitaEvent fEv(d.useful(), &fs, d.gps(), d.header());
+        FilteredEvent fEv(d.useful(), &fs, d.gps(), d.header());
 
-        for(int polInd=0; polInd < AnitaPol::kNotAPol; polInd++){
-          AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t) polInd;          
-          for(int ant=0; ant < NUM_SEAVEYS; ant++){
+        for(int polInd=0; polInd < pol::kNotAPol; polInd++){
+          pol::pol_t pol = (pol::pol_t) polInd;          
+          for(int ant=0; ant < k::NUM_HORNS; ant++){
             const FFTtools::SineSubtract* ss = ssf->sinsub(pol, ant);
             FFTtools::SineSubtractResult* ssr = const_cast<FFTtools::SineSubtractResult*>(ss->getResult());
             results[pol][ant] = ssr;
@@ -111,13 +110,13 @@ void UCorrelator::SineSubtractCache::makeCache(int run, SineSubtractFilter* ssf)
  * 
  * @param ssDesc description string, used for identifying file of cached results
  */
-UCorrelator::SineSubtractCache::SineSubtractCache(const char* ssDesc)
+pueo::UCorrelator::SineSubtractCache::SineSubtractCache(const char* ssDesc)
   : fDebug(false), fFile(NULL), fTree(NULL), fDescHash(0), fSpecDir(), fCurrentRun(-1), fLastAttemptedRun(-1), fLastEventNumber(0)
 {
 
 
-  for(int pol=0; pol < AnitaPol::kNotAPol; pol++){
-    for(int ant=0; ant < NUM_SEAVEYS; ant++){
+  for(int pol=0; pol < pol::kNotAPol; pol++){
+    for(int ant=0; ant < k::NUM_HORNS; ant++){
       results[pol][ant] = NULL;
     }
   }
@@ -140,7 +139,7 @@ UCorrelator::SineSubtractCache::SineSubtractCache(const char* ssDesc)
 
 
 
-UCorrelator::SineSubtractCache::~SineSubtractCache(){
+pueo::UCorrelator::SineSubtractCache::~SineSubtractCache(){
 
   if(fFile){
     fFile->Close();
@@ -149,7 +148,7 @@ UCorrelator::SineSubtractCache::~SineSubtractCache(){
 
 
 
-const FFTtools::SineSubtractResult* UCorrelator::SineSubtractCache::getResult(UInt_t eventNumber, AnitaPol::AnitaPol_t pol, Int_t ant){
+const FFTtools::SineSubtractResult* pueo::UCorrelator::SineSubtractCache::getResult(UInt_t eventNumber, pol::pol_t pol, Int_t ant){
 
   // hard to check whether anita version is correct...
   // this should happen
@@ -157,7 +156,7 @@ const FFTtools::SineSubtractResult* UCorrelator::SineSubtractCache::getResult(UI
   // std::cerr << eventNumber << "\t" << pol << "\t" << ant << std::endl;
 
   if(eventNumber != fLastEventNumber){
-    int run = AnitaDataset::getRunContainingEventNumber(eventNumber);
+    int run = Dataset::getRunContainingEventNumber(eventNumber);
     if(run!=fLastAttemptedRun){//fCurrentRun){
       loadRun(run);
     }
@@ -199,7 +198,7 @@ const FFTtools::SineSubtractResult* UCorrelator::SineSubtractCache::getResult(UI
 
 
 
-void UCorrelator::SineSubtractCache::loadRun(Int_t run){
+void pueo::UCorrelator::SineSubtractCache::loadRun(Int_t run){
 
   if(fSpecDir.Length() > 0 && fDescHash > 0){
     if(fFile){
@@ -215,9 +214,9 @@ void UCorrelator::SineSubtractCache::loadRun(Int_t run){
       fTree = (TTree*) fFile->Get(ssrTreeName);
 
       fTree->SetBranchAddress("eventNumber", &fLastEventNumber);
-      for(int polInd=0; polInd < AnitaPol::kNotAPol; polInd++){
-        AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t) polInd;
-        for(int ant=0; ant < NUM_SEAVEYS; ant++){
+      for(int polInd=0; polInd < pol::kNotAPol; polInd++){
+        pol::pol_t pol = (pol::pol_t) polInd;
+        for(int ant=0; ant < k::NUM_HORNS; ant++){
           fTree->SetBranchAddress(branchName(pol, ant), &results[pol][ant]);
         }
       }

@@ -1,22 +1,22 @@
 #include "FFTtools.h" 
-#include "FilterStrategy.h"
-#include "UCFilters.h" 
-#include "TimeDependentAverage.h" 
-#include "GeomFilter.h" 
-#include "BasicFilters.h" 
-#include "ResponseManager.h" 
-#include "SystemResponse.h" 
+#include "pueo/FilterStrategy.h"
+#include "pueo/UCFilters.h" 
+#include "pueo/TimeDependentAverage.h" 
+#include "pueo/GeomFilter.h" 
+#include "pueo/BasicFilters.h" 
+#include "pueo/ResponseManager.h" 
+#include "pueo/SystemResponse.h" 
 #include "TGraph.h" 
-#include "AnalysisWaveform.h" 
-#include "RawAnitaHeader.h"
+#include "pueo/AnalysisWaveform.h" 
+#include "pueo/RawHeader.h"
 #include "TRandom.h"
-#include "TaperFilter.h" 
-#include "Adu5Pat.h"
-#include "DiodeFilter.h" 
+#include "pueo/TaperFilter.h" 
+#include "pueo/Nav.h"
+#include "pueo/DiodeFilter.h" 
 #include "DigitalFilter.h"
 #include <math.h>// for isnan
-#include "AntennaPositions.h"
-#include "SineSubtractCache.h"
+#include "pueo/AntennaPositions.h"
+#include "pueo/SineSubtractCache.h"
 
 #ifdef UCORRELATOR_OPENMP
 #include "omp.h"
@@ -25,7 +25,7 @@
 
 
 
-FilterStrategy * UCorrelator::getStrategyWithKey (const char * key) 
+pueo::FilterStrategy * pueo::UCorrelator::getStrategyWithKey (const char * key) 
 {
   FilterStrategy * s = new FilterStrategy; 
   fillStrategyWithKey(s,key); 
@@ -34,20 +34,20 @@ FilterStrategy * UCorrelator::getStrategyWithKey (const char * key)
 
 
 static std::map<const char *, TString> key_descs; 
-static UCorrelator::TimeDependentAverageLoader avgldr; 
-static AnitaResponse::ResponseManager * responseManager = 0; 
-static AnitaResponse::AllPassDeconvolution allpass; 
-// static UCorrelator::TimeDependentAverageLoader avgldr; 
-// static UCorrelator::ResponseManager * responseManager = 0; 
-// static UCorrelator::AllPassDeconvolution allpass; 
+static pueo::UCorrelator::TimeDependentAverageLoader avgldr; 
+static pueo::ResponseManager * responseManager = 0; 
+static pueo::AllPassDeconvolution allpass; 
+// static pueo::UCorrelator::TimeDependentAverageLoader avgldr; 
+// static pueo::UCorrelator::ResponseManager * responseManager = 0; 
+// static pueo::UCorrelator::AllPassDeconvolution allpass; 
 
-void UCorrelator::setAdaptiveFilterSpectrumAverageNSecs(int nsecs) 
+void pueo::UCorrelator::setAdaptiveFilterSpectrumAverageNSecs(int nsecs) 
 {
   avgldr.setNSecs(nsecs); 
 }
 
 static TString desc; 
-const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const char * key) 
+const char * pueo::UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const char * key) 
 {
   TString tokens(key); 
   TString tok; 
@@ -55,7 +55,6 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
 
   bool need_description = key_descs.count(key); 
 
-  bool dont_alfa = false; 
 
   while (tokens.Tokenize(tok, from,"+"))
   {
@@ -189,7 +188,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
         double expf = exp; 
         while (expf > 10) expf /=10; 
 
-        UCorrelator::SineSubtractFilter * ssf = new UCorrelator::SineSubtractFilter(mpr/100.,iter); 
+        pueo::UCorrelator::SineSubtractFilter * ssf = new pueo::UCorrelator::SineSubtractFilter(mpr/100.,iter); 
         if (fillme) 
         {
           ssf->makeAdaptive(&avgldr,expf); 
@@ -276,8 +275,8 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
 
       if (!responseManager && fillme ) 
       {
-        if (AnitaVersion::get() == 3) responseManager = new AnitaResponse::ResponseManager("IndividualBRotter",3);
-        else if (AnitaVersion::get() == 4) responseManager = new AnitaResponse::ResponseManager("ResponseA4",3);
+        if (version::get() == 3) responseManager = new ResponseManager("IndividualBRotter",3);
+        else if (version::get() == 4) responseManager = new ResponseManager("ResponseA4",3);
         else fprintf(stderr, "Response not yet implemented for other versions of ANITA!\n");
       }
 
@@ -287,7 +286,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
       }
 
       if (fillme) 
-        fillme->addOperation( new AnitaResponse::DeconvolveFilter(responseManager, &allpass),false,true); 
+        fillme->addOperation( new DeconvolveFilter(responseManager, &allpass),false,true); 
     }
 
     else if (strcasestr(tok.Data(),"gaustaper_")) 
@@ -325,7 +324,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
         {
           for (int pol = 0; pol < 2; pol++) 
           {
-            TH1 * avg = UCorrelator::TimeDependentAverage::defaultThermal()->getSpectrumPercentile(AnitaPol::AnitaPol_t(pol), ant,0.5,true); 
+            TH1 * avg = pueo::UCorrelator::TimeDependentAverage::defaultThermal()->getSpectrumPercentile(pol::pol_t(pol), ant,0.5,true); 
             noise[pol][ant] = new TGraphAligned(avg->GetNbinsX()); 
             for (int i = 0; i < avg->GetNbinsX(); i++) 
             {
@@ -353,7 +352,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
 
         fillme->addOperation(new ConditionalFilterOperation
                                      (  new ComplicatedNotchFilter(0.26-0.026, 0.26 + 0.026), 
-                                            &UCorrelator::antennaIsNorthFacing, "_north", "if is facing north",true
+                                            &pueo::UCorrelator::antennaIsNorthFacing, "_north", "if is facing north",true
                                      ), false,true);  
 
         fillme->addOperation(new AdaptiveFilterAbby(2, getenv("UCORRELATOR_BASELINE_DIR")),false,true); 
@@ -408,35 +407,12 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
           desc += TString::Format("(Simple Notch %lg-%lg MHz)",lower,upper); 
       }
     }
-    else if (strcasestr(tok.Data(),"alfa") && AnitaVersion::get()==3)
-    {
-      dont_alfa = true; 
-      if (fillme) 
-      {
-        fillme->addOperation(new ALFAFilter,false,true); 
-      }
-      if (need_description) 
-      {
-        desc += "(ALFA Filter) "; 
-      }
-    }
+    
     else if (strcasestr(tok.Data(),"diode"))
     {
       if (fillme) 
       {
-        if (AnitaVersion::get() ==3 && !dont_alfa)
-        {
-           dont_alfa = true; 
-           if (fillme) 
-           {
-              fillme->addOperation(new ALFAFilter,false,true); 
-           }
-           if (need_description) 
-           {
-              desc += "(ALFA Filter) "; 
-           }
-
-        }
+        
         fillme->addOperation(new DiodeFilter,false,true); 
       }
       if (need_description) 
@@ -448,18 +424,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
   
 
 
-  if (AnitaVersion::get()==3 && !dont_alfa) 
-  {
-    //TODO: make this more configurable
-    if (fillme) 
-    {
-      fillme->addOperation(new ALFAFilter,false,true); 
-    }
-    if (need_description) 
-    {
-      desc += "(ALFA Filter) "; 
-    }
-  }
+  
 
   if (need_description) 
     key_descs[key] = desc; 
@@ -474,7 +439,7 @@ const char * UCorrelator::fillStrategyWithKey(FilterStrategy * fillme, const cha
 
 
 
-void UCorrelator::ComplicatedNotchFilter::processOne(AnalysisWaveform* g, const RawAnitaHeader * , int , int ) 
+void pueo::UCorrelator::ComplicatedNotchFilter::processOne(AnalysisWaveform* g, const RawHeader * , int , int ) 
 {
 //  printf("ComplicatedNotchFilter::processOne!\n"); 
   int nfreq = g->Nfreq(); 
@@ -503,7 +468,7 @@ void UCorrelator::ComplicatedNotchFilter::processOne(AnalysisWaveform* g, const 
 
 
 
-bool UCorrelator::antennaIsNorthFacing(FilteredAnitaEvent * ev, int ant, AnitaPol::AnitaPol_t pol) 
+bool pueo::UCorrelator::antennaIsNorthFacing(FilteredEvent * ev, int ant, pol::pol_t pol) 
 {
   
   double headingAnt = ev->getGPS()->heading - AntennaPositions::instance()->phiAnt[pol][ant]; 
@@ -602,18 +567,18 @@ static void interpolateFreqsBetween(TGraph * g, double fmin, double fmax)
 static std::vector<TString> hpol_freq_names; 
 static std::vector<TString> vpol_freq_names; 
 
-const char * UCorrelator::AdaptiveFilterAbby::outputName(unsigned i) const
+const char * pueo::UCorrelator::AdaptiveFilterAbby::outputName(unsigned i) const
 {
 
   switch(i) 
   {
-    case AnitaPol::kHorizontal: 
+    case pol::kHorizontal: 
       return "mean_freq_hpol";
-    case AnitaPol::kVertical: 
+    case pol::kVertical: 
       return "mean_freq_vpol";
-    case 2+AnitaPol::kHorizontal: 
+    case 2+pol::kHorizontal: 
       return "strongest_cw_hpol"; 
-    case 2+AnitaPol::kVertical: 
+    case 2+pol::kVertical: 
       return "strongest_cw_vpol"; 
     case 5: 
       return "hpol_freqs"; 
@@ -627,7 +592,7 @@ const char * UCorrelator::AdaptiveFilterAbby::outputName(unsigned i) const
 }
 
 
-void UCorrelator::AdaptiveFilterAbby::fillOutput(unsigned  i, double *vals) const
+void pueo::UCorrelator::AdaptiveFilterAbby::fillOutput(unsigned  i, double *vals) const
 {
 
   switch(i) 
@@ -651,7 +616,7 @@ void UCorrelator::AdaptiveFilterAbby::fillOutput(unsigned  i, double *vals) cons
   }
 }
 
-void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event) 
+void pueo::UCorrelator::AdaptiveFilterAbby::process(FilteredEvent * event) 
 {
 //  printf("AdaptiveFilterAbby::process!\n"); 
   /* Here we do all the same processing to the baseline as Abby does */ 
@@ -692,12 +657,12 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
 
 
 
-  for (int pol = AnitaPol::kHorizontal; pol <= AnitaPol::kVertical; pol++)
+  for (int pol = pol::kHorizontal; pol <= pol::kVertical; pol++)
   {
     TGraph * which_power = &powers[pol]; 
-    for (int i = 0; i < NUM_SEAVEYS; i++) 
+    for (int i = 0; i < k::NUM_HORNS; i++) 
     {
-      const TGraph * power = event->getFilteredGraph(i,(AnitaPol::AnitaPol_t)pol)->power(); 
+      const TGraph * power = event->getFilteredGraph(i,(pol::pol_t)pol)->power(); 
 
 
       if (i == 0)
@@ -709,7 +674,7 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
 
       for (int j = 0; j < which_power->GetN(); j++) 
       {
-          which_power->GetY()[j] += FFTtools::evalEvenGraph(power, which_power->GetX()[j])  / NUM_SEAVEYS ; 
+          which_power->GetY()[j] += FFTtools::evalEvenGraph(power, which_power->GetX()[j])  / k::NUM_HORNS ; 
       }
     }
 
@@ -718,10 +683,10 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
 
   //compute means
 
-  for (int pol = AnitaPol::kHorizontal; pol <= AnitaPol::kVertical; pol++)
+  for (int pol = pol::kHorizontal; pol <= pol::kVertical; pol++)
   {
 
-    TGraph * baseline = pol == AnitaPol::kHorizontal ? hpol_avg : vpol_avg; 
+    TGraph * baseline = pol == pol::kHorizontal ? hpol_avg : vpol_avg; 
     TGraph * power = &powers[pol]; 
 
 
@@ -823,7 +788,7 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
   }
 
   //now that we have the frequencies to cut, we should cut them!
-  for (int pol = AnitaPol::kHorizontal; pol <= AnitaPol::kVertical; pol++)
+  for (int pol = pol::kHorizontal; pol <= pol::kVertical; pol++)
   {
     for (int freq = 0; freq < nfreq; freq++) 
     {
@@ -831,9 +796,9 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
 
       ComplicatedNotchFilter complicated(freqs[pol][freq]-bw, freqs[pol][freq]+bw, temperature, gain); 
 //      printf("Filtering out %f\n", freqs[pol][freq]); 
-      for (int i= 0; i < NUM_SEAVEYS; i++) 
+      for (int i= 0; i < k::NUM_HORNS; i++) 
       {
-          complicated.processOne(getWf(event,i, AnitaPol::AnitaPol_t(pol))); 
+          complicated.processOne(getWf(event,i, pol::pol_t(pol))); 
       }
     }
   }
@@ -841,7 +806,7 @@ void UCorrelator::AdaptiveFilterAbby::process(FilteredAnitaEvent * event)
   
 }
 
-void UCorrelator::AdaptiveFilterAbby::processOne(AnalysisWaveform * , const RawAnitaHeader * , int , int ) 
+void pueo::UCorrelator::AdaptiveFilterAbby::processOne(AnalysisWaveform * , const RawHeader * , int , int ) 
 {
 	printf("processOne not implemented yet, sorry!\n");
 }
@@ -856,13 +821,13 @@ void UCorrelator::AdaptiveFilterAbby::processOne(AnalysisWaveform * , const RawA
 
 
 static bool use_sine_sub_cache = false;
-void UCorrelator::SineSubtractFilter::setUseCache(bool uc){
+void pueo::UCorrelator::SineSubtractFilter::setUseCache(bool uc){
   use_sine_sub_cache = uc;
 }
 
 
 
-UCorrelator::SineSubtractFilter::SineSubtractFilter(double min_power_ratio, int max_failed_iter,  int nfreq_bands, const double * fmin, const double * fmax, int nstored_freqs)
+pueo::UCorrelator::SineSubtractFilter::SineSubtractFilter(double min_power_ratio, int max_failed_iter,  int nfreq_bands, const double * fmin, const double * fmax, int nstored_freqs)
     : min_power_ratio(min_power_ratio), spec(0), last_t(0), nstored_freqs(nstored_freqs), adaptive_exp(1), max_failed(max_failed_iter), use_even(false), sine_sub_cache(NULL)
 {
 
@@ -884,7 +849,7 @@ UCorrelator::SineSubtractFilter::SineSubtractFilter(double min_power_ratio, int 
  const char * polstr[2] = {"hpol","vpol"}; 
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      subs[pol][i] = new FFTtools::SineSubtract(max_failed_iter, min_power_ratio); 
      subs[pol][i]->setFreqLimits(nfreq_bands, fmin, fmax); 
@@ -902,31 +867,31 @@ UCorrelator::SineSubtractFilter::SineSubtractFilter(double min_power_ratio, int 
    }
  }
 
-   for(int polInd=0; polInd < AnitaPol::kNotAPol; polInd++){
-     AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t) polInd;
-     for(int ant=0; ant < NUM_SEAVEYS; ant++){
+   for(int polInd=0; polInd < pol::kNotAPol; polInd++){
+     pol::pol_t pol = (pol::pol_t) polInd;
+     for(int ant=0; ant < k::NUM_HORNS; ant++){
        cached_ssr[pol][ant] = NULL;
      }
    }
 }
 
 
-void UCorrelator::SineSubtractFilter::setPeakFindingOption(FFTtools::SineSubtract::PeakFindingOption option, const double * params)
+void pueo::UCorrelator::SineSubtractFilter::setPeakFindingOption(FFTtools::SineSubtract::PeakFindingOption option, const double * params)
 {
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      subs[pol][i]->setPeakFindingOption(option,params); 
    }
  }
 }
 
-void UCorrelator::SineSubtractFilter::setEnvelopeOption(FFTtools::SineSubtract::EnvelopeOption option, const double * params)
+void pueo::UCorrelator::SineSubtractFilter::setEnvelopeOption(FFTtools::SineSubtract::EnvelopeOption option, const double * params)
 {
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      subs[pol][i]->setEnvelopeOption(option,params); 
    }
@@ -936,7 +901,7 @@ void UCorrelator::SineSubtractFilter::setEnvelopeOption(FFTtools::SineSubtract::
 
 
 
-void UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * vars) const 
+void pueo::UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * vars) const 
 {
 //  printf("fillOutput(%u)\n",ui); 
 
@@ -948,7 +913,7 @@ void UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * vars) con
 
     for (int pol = 0; pol < 2; pol++)
     {
-      for (int i = 0; i < NUM_SEAVEYS; i++) 
+      for (int i = 0; i < k::NUM_HORNS; i++) 
       {
         const FFTtools::SineSubtractResult *r =  subs[pol][i]->getResult(); 
         double pinit = r->powers[0]; 
@@ -965,7 +930,7 @@ void UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * vars) con
 
   int pol =  (i-1) < nfor_each_pol ? 0 : 1; 
 
-  for (int j = 0; j < NUM_SEAVEYS; j++) 
+  for (int j = 0; j < k::NUM_HORNS; j++) 
   {
      const FFTtools::SineSubtractResult *r =  subs[pol][j]->getResult(); 
 
@@ -1009,15 +974,15 @@ void UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * vars) con
 }
 
 
-void UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
+void pueo::UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
   if(use_sine_sub_cache){
     if(!sine_sub_cache){
       sine_sub_cache = new SineSubtractCache(this->description());
     }
   }
-  for(int polInd=0; polInd < AnitaPol::kNotAPol; polInd++){
-    AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t) polInd;
-    for(int ant=0; ant < NUM_SEAVEYS; ant++){
+  for(int polInd=0; polInd < pol::kNotAPol; polInd++){
+    pol::pol_t pol = (pol::pol_t) polInd;
+    for(int ant=0; ant < k::NUM_HORNS; ant++){
       if(use_sine_sub_cache){
         cached_ssr[pol][ant] = sine_sub_cache->getResult(eventNumber, pol, ant);
       }
@@ -1028,25 +993,25 @@ void UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
   }
 }
 
-void UCorrelator::SineSubtractFilter::process(FilteredAnitaEvent * ev) 
+void pueo::UCorrelator::SineSubtractFilter::process(FilteredEvent * ev) 
 {
- const RawAnitaHeader * h = ev->getHeader(); 
+ const RawHeader * h = ev->getHeader(); 
  refresh_cache(h->eventNumber);
 
 #ifdef UCORRELATOR_OPENMP
 #pragma omp parallel for
 #endif
-  for (int i = 0; i < 2*NUM_SEAVEYS; i++) 
+  for (int i = 0; i < 2*k::NUM_HORNS; i++) 
   {
       int pol = i % 2; 
-      AnalysisWaveform * wf = getWf(ev, i/2, AnitaPol::AnitaPol_t(pol)); 
+      AnalysisWaveform * wf = getWf(ev, i/2, pol::pol_t(pol)); 
       processOne(wf,h,i/2,pol);
   }
 
   last_t = ev->getHeader()->triggerTime; //ev->getHeader()->triggerTime; 
 }
 
-void UCorrelator::SineSubtractFilter::processOne(AnalysisWaveform *wf, const RawAnitaHeader * header, int i, int pol)
+void pueo::UCorrelator::SineSubtractFilter::processOne(AnalysisWaveform *wf, const RawHeader * header, int i, int pol)
 {
 
   if (spec) 
@@ -1054,7 +1019,7 @@ void UCorrelator::SineSubtractFilter::processOne(AnalysisWaveform *wf, const Raw
     // use peakiness to tune aggressivness
     if (header->triggerTime != last_t)
     {
-      TH2 * peaky = (TH2*) spec->avg(header->triggerTime)->getPeakiness(AnitaPol::AnitaPol_t(pol), i); 
+      TH2 * peaky = (TH2*) spec->avg(header->triggerTime)->getPeakiness(pol::pol_t(pol), i); 
 
       if (reduction[pol][i])
         delete reduction[pol][i]; 
@@ -1112,11 +1077,11 @@ void UCorrelator::SineSubtractFilter::processOne(AnalysisWaveform *wf, const Raw
   }
 }
 
-UCorrelator::SineSubtractFilter::~SineSubtractFilter()
+pueo::UCorrelator::SineSubtractFilter::~SineSubtractFilter()
 {
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      delete subs[pol][i]; 
 
@@ -1127,11 +1092,11 @@ UCorrelator::SineSubtractFilter::~SineSubtractFilter()
 }
 
 
-void UCorrelator::SineSubtractFilter::setVerbose(bool set) 
+void pueo::UCorrelator::SineSubtractFilter::setVerbose(bool set) 
 {
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      subs[pol][i]->setVerbose(set); 
    }
@@ -1141,11 +1106,11 @@ void UCorrelator::SineSubtractFilter::setVerbose(bool set)
 }
 
 
-void UCorrelator::SineSubtractFilter::setInteractive(bool set) 
+void pueo::UCorrelator::SineSubtractFilter::setInteractive(bool set) 
 {
  for (int pol = 0; pol < 2; pol++)
  {
-   for (int i = 0; i < NUM_SEAVEYS; i++) 
+   for (int i = 0; i < k::NUM_HORNS; i++) 
    {
      subs[pol][i]->setStore(set); 
    }
@@ -1155,7 +1120,7 @@ void UCorrelator::SineSubtractFilter::setInteractive(bool set)
 }
 
 
-void UCorrelator::SineSubtractFilter::makeAdaptive(const TimeDependentAverageLoader * s, double peak_exp) 
+void pueo::UCorrelator::SineSubtractFilter::makeAdaptive(const TimeDependentAverageLoader * s, double peak_exp) 
 {
   spec = s; 
   adaptive_exp = peak_exp; 
@@ -1166,7 +1131,7 @@ void UCorrelator::SineSubtractFilter::makeAdaptive(const TimeDependentAverageLoa
 
 //Combined Sine Subtract 
 
-UCorrelator::CombinedSineSubtractFilter::CombinedSineSubtractFilter(double min_power_ratio, int max_failed_iter, int nfreq_bands, const double * fmin, const double * fmax, int nstored_freqs)
+pueo::UCorrelator::CombinedSineSubtractFilter::CombinedSineSubtractFilter(double min_power_ratio, int max_failed_iter, int nfreq_bands, const double * fmin, const double * fmax, int nstored_freqs)
   : nstored_freqs(nstored_freqs) 
 {
  desc_string.Form("CombinedSineSubtract with min_power_ratio=%f, max_failed_iter =%d, and %d frequency bands", min_power_ratio, max_failed_iter, nfreq_bands);
@@ -1182,7 +1147,7 @@ UCorrelator::CombinedSineSubtractFilter::CombinedSineSubtractFilter(double min_p
 
  output_names.push_back(TString("total_power_removed")); 
 
- for (int i = 0; i < NUM_PHI; i++) 
+ for (int i = 0; i < k::NUM_PHI; i++) 
  {
    for (int ipol = 0; ipol < 2; ipol++)
    {
@@ -1203,7 +1168,7 @@ UCorrelator::CombinedSineSubtractFilter::CombinedSineSubtractFilter(double min_p
 }
 
 
-void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * vars) const 
+void pueo::UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * vars) const 
 {
 //  printf("fillOutput(%u)\n",ui); 
 
@@ -1213,7 +1178,7 @@ void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * v
     double total_power_initial = 0; 
     double total_power_final = 0; 
 
-    for (int i = 0; i < NUM_PHI; i++) 
+    for (int i = 0; i < k::NUM_PHI; i++) 
     {
       for (int ipol = 0; ipol < 2; ipol++) 
       {
@@ -1230,7 +1195,7 @@ void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * v
   }
 
 
-  for (int j = 0; j < NUM_PHI; j++) 
+  for (int j = 0; j < k::NUM_PHI; j++) 
   {
     for (int ipol = 0; ipol < 2; ipol++) 
     {
@@ -1239,11 +1204,11 @@ void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * v
 
       if (i == 1) 
       {
-        vars[j + ipol * NUM_PHI] = (double) r->freqs.size(); 
+        vars[j + ipol * k::NUM_PHI] = (double) r->freqs.size(); 
       }
       else if (i == 2) 
       {
-        vars[j + ipol * NUM_PHI] = (double) r->powers[r->powers.size()-1] - r->powers[0]; 
+        vars[j + ipol * k::NUM_PHI] = (double) r->powers[r->powers.size()-1] - r->powers[0]; 
       }
       else 
       {
@@ -1260,14 +1225,14 @@ void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * v
 
         if (ii%3 ==0 ) 
         {
-          vars[j + ipol * NUM_PHI] = r->freqs[freqi]; 
+          vars[j + ipol * k::NUM_PHI] = r->freqs[freqi]; 
         }
 
         else 
         {
           for (unsigned k = 0; k < 3; k++)
           {
-            int jj = j *3 +  k + ipol * NUM_PHI * 3; 
+            int jj = j *3 +  k + ipol * k::NUM_PHI * 3; 
 
             if (ii %3 == 1) 
             {
@@ -1284,25 +1249,25 @@ void UCorrelator::CombinedSineSubtractFilter::fillOutput(unsigned ui, double * v
   }
 }
 
-unsigned UCorrelator::CombinedSineSubtractFilter::outputLength(unsigned i) const
+unsigned pueo::UCorrelator::CombinedSineSubtractFilter::outputLength(unsigned i) const
 {
 
   if ( i == 0) return 1;  //total power removed
-  if (i == 1 || i == 2) return NUM_PHI*2;  //power removed and niter per phi sector/ pol
+  if (i == 1 || i == 2) return k::NUM_PHI*2;  //power removed and niter per phi sector/ pol
 
   i-=3; 
-  if (i % 3 == 0) return NUM_PHI*2; //frequency per phi sector /pol
+  if (i % 3 == 0) return k::NUM_PHI*2; //frequency per phi sector /pol
 
-  return NUM_PHI * 6; //phase and amp per antenna 
+  return k::NUM_PHI * 6; //phase and amp per antenna 
 }
 
-void UCorrelator::CombinedSineSubtractFilter::process(FilteredAnitaEvent * ev) 
+void pueo::UCorrelator::CombinedSineSubtractFilter::process(FilteredEvent * ev) 
 {
 
 #ifdef UCORRELATOR_OPENMP
 #pragma omp parallel for
 #endif
-  for (int i = 0; i < NUM_PHI; i++) 
+  for (int i = 0; i < k::NUM_PHI; i++) 
   {
       for (int pol = 0; pol < 2; pol++)
       {
@@ -1312,7 +1277,7 @@ void UCorrelator::CombinedSineSubtractFilter::process(FilteredAnitaEvent * ev)
 
         for (int ring = 0; ring < 3; ring++)
         {
-          AnalysisWaveform * wf = getWf(ev, i+ring*NUM_PHI, AnitaPol::AnitaPol_t(pol)); 
+          AnalysisWaveform * wf = getWf(ev, i+ring*k::NUM_PHI, pol::pol_t(pol)); 
           TGraph * g = wf->updateUneven(); 
           if (g->GetRMS(2) > 0) 
             gs[ng++] = g; 
@@ -1322,14 +1287,14 @@ void UCorrelator::CombinedSineSubtractFilter::process(FilteredAnitaEvent * ev)
    }
 }
 
-void UCorrelator::CombinedSineSubtractFilter::processOne(AnalysisWaveform * , const RawAnitaHeader * , int , int )
+void pueo::UCorrelator::CombinedSineSubtractFilter::processOne(AnalysisWaveform * , const RawHeader * , int , int )
 {
 	printf("processOne not implemented yet, sorry!\n");
 }
 
-UCorrelator::CombinedSineSubtractFilter::~CombinedSineSubtractFilter()
+pueo::UCorrelator::CombinedSineSubtractFilter::~CombinedSineSubtractFilter()
 {
-   for (int i = 0; i < NUM_PHI; i++) 
+   for (int i = 0; i < k::NUM_PHI; i++) 
    {
      for (int ipol = 0; ipol < 2; ipol++) 
      {
@@ -1339,9 +1304,9 @@ UCorrelator::CombinedSineSubtractFilter::~CombinedSineSubtractFilter()
 }
 
 
-void UCorrelator::CombinedSineSubtractFilter::setInteractive(bool set) 
+void pueo::UCorrelator::CombinedSineSubtractFilter::setInteractive(bool set) 
 {
-   for (int i = 0; i < NUM_PHI; i++) 
+   for (int i = 0; i < k::NUM_PHI; i++) 
    {
      for (int ipol = 0; ipol < 2; ipol++) 
      {
@@ -1357,7 +1322,7 @@ void UCorrelator::CombinedSineSubtractFilter::setInteractive(bool set)
 
 
 
-UCorrelator::AdaptiveMinimumPhaseFilter::AdaptiveMinimumPhaseFilter(const TimeDependentAverageLoader *avg, double exponent,int npad)
+pueo::UCorrelator::AdaptiveMinimumPhaseFilter::AdaptiveMinimumPhaseFilter(const TimeDependentAverageLoader *avg, double exponent,int npad)
  : avg(avg),npad(npad), exponent(exponent), last_bin(-1) 
 {
   desc_string.Form("Adaptive Minimum Phase Filter with TimeDependentAverageLoader(%d) and exponent %g",  avg->getNsecs(), exponent); 
@@ -1365,11 +1330,11 @@ UCorrelator::AdaptiveMinimumPhaseFilter::AdaptiveMinimumPhaseFilter(const TimeDe
   memset(size,0,sizeof(size)); 
 }
 
-UCorrelator::AdaptiveMinimumPhaseFilter::~AdaptiveMinimumPhaseFilter() 
+pueo::UCorrelator::AdaptiveMinimumPhaseFilter::~AdaptiveMinimumPhaseFilter() 
 {
   for (int i = 0; i < 2; i++) 
   {
-    for (int j = 0; j < NUM_SEAVEYS; j++) 
+    for (int j = 0; j < k::NUM_HORNS; j++) 
     {
       if (filt[i][j]) delete filt[i][j]; 
     }
@@ -1377,17 +1342,17 @@ UCorrelator::AdaptiveMinimumPhaseFilter::~AdaptiveMinimumPhaseFilter()
 }
 
 
-void UCorrelator::AdaptiveMinimumPhaseFilter::process(FilteredAnitaEvent * ev) 
+void pueo::UCorrelator::AdaptiveMinimumPhaseFilter::process(FilteredEvent * ev) 
 {
 
   double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
-  int bin = avg->avg(t)->getPeakiness(AnitaPol::kHorizontal,0)->GetYaxis()->FindBin(t); 
+  int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 
 
   for (int ipol = 0; ipol < 2; ipol++) 
   {
-    AnitaPol::AnitaPol_t pol = AnitaPol::AnitaPol_t(ipol); 
-    for (int i = 0; i < NUM_SEAVEYS; i++) 
+    pol::pol_t pol = pol::pol_t(ipol); 
+    for (int i = 0; i < k::NUM_HORNS; i++) 
     {
       AnalysisWaveform * wf = getWf(ev,i,pol); 
 
@@ -1432,12 +1397,12 @@ void UCorrelator::AdaptiveMinimumPhaseFilter::process(FilteredAnitaEvent * ev)
 
 }
 
-void UCorrelator::AdaptiveMinimumPhaseFilter::processOne(AnalysisWaveform * , const RawAnitaHeader * , int , int )
+void pueo::UCorrelator::AdaptiveMinimumPhaseFilter::processOne(AnalysisWaveform * , const RawHeader * , int , int )
 {
 	printf("processOne not implemented yet, sorry!\n");
 }
 
-TGraph * UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterTimeDomain(AnitaPol::AnitaPol_t pol, int i) const 
+TGraph * pueo::UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterTimeDomain(pol::pol_t pol, int i) const 
 {
   int  N = size[pol][i] * (1+npad); 
   double * y = FFTtools::doInvFFT(N,filt[pol][i]); 
@@ -1454,7 +1419,7 @@ TGraph * UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterTimeDomain(Ani
 }
 
 
-TGraph * UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterPower(AnitaPol::AnitaPol_t pol, int i) const 
+TGraph * pueo::UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterPower(pol::pol_t pol, int i) const 
 {
   //TODO make right size
 
@@ -1477,7 +1442,7 @@ TGraph * UCorrelator::AdaptiveMinimumPhaseFilter::getCurrentFilterPower(AnitaPol
 
 
 static int n_adaptive_brickwall = 0; 
-UCorrelator::AdaptiveBrickWallFilter::AdaptiveBrickWallFilter(const TimeDependentAverageLoader * spec, double thresh, bool fillNotch) 
+pueo::UCorrelator::AdaptiveBrickWallFilter::AdaptiveBrickWallFilter(const TimeDependentAverageLoader * spec, double thresh, bool fillNotch) 
   : avg(spec), threshold(thresh), fill(fillNotch) 
 {
 
@@ -1487,24 +1452,24 @@ UCorrelator::AdaptiveBrickWallFilter::AdaptiveBrickWallFilter(const TimeDependen
   instance = n_adaptive_brickwall++; 
 }
 
-UCorrelator::AdaptiveBrickWallFilter::~AdaptiveBrickWallFilter()
+pueo::UCorrelator::AdaptiveBrickWallFilter::~AdaptiveBrickWallFilter()
 {
 
   for (int i = 0; i < 2; i++) 
   {
-    for (int j = 0; j < NUM_SEAVEYS; j++) 
+    for (int j = 0; j < k::NUM_HORNS; j++) 
     {
       if (sp[i][j]) delete sp[i][j]; 
     }
   }
 }
 
-void UCorrelator::AdaptiveBrickWallFilter::process(FilteredAnitaEvent *ev)
+void pueo::UCorrelator::AdaptiveBrickWallFilter::process(FilteredEvent *ev)
 {
 
   double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
 //  double t= ev->getHeader()->realTime; //until icemc fixes this
-  int bin = avg->avg(t)->getPeakiness(AnitaPol::kHorizontal,0)->GetYaxis()->FindBin(t); 
+  int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 
 
 
@@ -1512,9 +1477,9 @@ void UCorrelator::AdaptiveBrickWallFilter::process(FilteredAnitaEvent *ev)
   {
     for (int ipol = 0; ipol < 2; ipol++) 
     {
-      AnitaPol::AnitaPol_t pol = AnitaPol::AnitaPol_t(ipol); 
+      pol::pol_t pol = pol::pol_t(ipol); 
 
-      for (int i = 0; i < NUM_SEAVEYS; i++) 
+      for (int i = 0; i < k::NUM_HORNS; i++) 
       {
           if (sp[ipol][i]) 
           {
@@ -1528,11 +1493,11 @@ void UCorrelator::AdaptiveBrickWallFilter::process(FilteredAnitaEvent *ev)
 
   for (int ipol = 0; ipol < 2; ipol++) 
   {
-      AnitaPol::AnitaPol_t pol = AnitaPol::AnitaPol_t(ipol); 
+      pol::pol_t pol = pol::pol_t(ipol); 
 #ifdef UCORRELATOR_OPENMP
 #pragma omp parallel for 
 #endif
-      for (int i = 0; i < NUM_SEAVEYS; i++) 
+      for (int i = 0; i < k::NUM_HORNS; i++) 
       {
         AnalysisWaveform * wf = getWf(ev,i,pol); 
         int nf =wf->Nfreq(); 
@@ -1568,14 +1533,14 @@ void UCorrelator::AdaptiveBrickWallFilter::process(FilteredAnitaEvent *ev)
 
 }
 
-void UCorrelator::AdaptiveBrickWallFilter::processOne(AnalysisWaveform * , const RawAnitaHeader * , int , int )
+void pueo::UCorrelator::AdaptiveBrickWallFilter::processOne(AnalysisWaveform * , const RawHeader * , int , int )
 {
 	printf("processOne not implemented yet, sorry!\n");
 }
 
 
 
-UCorrelator::AdaptiveButterworthFilter::AdaptiveButterworthFilter(const TimeDependentAverageLoader *avg,
+pueo::UCorrelator::AdaptiveButterworthFilter::AdaptiveButterworthFilter(const TimeDependentAverageLoader *avg,
                                                                   double peakiness_threshold ,
                                                                   int order , double width) 
             : avg(avg), threshold(peakiness_threshold), order(order), width(width)  
@@ -1584,17 +1549,17 @@ UCorrelator::AdaptiveButterworthFilter::AdaptiveButterworthFilter(const TimeDepe
                     avg->getNsecs(), threshold, order, width);
 }
 
-void UCorrelator::AdaptiveButterworthFilter::process(FilteredAnitaEvent * ev) 
+void pueo::UCorrelator::AdaptiveButterworthFilter::process(FilteredEvent * ev) 
 {
 
   double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
 //  double t = ev->getHeader()->realTime; //until icemc fixes this 
-  int bin = avg->avg(t)->getPeakiness(AnitaPol::kHorizontal,0)->GetYaxis()->FindBin(t); 
+  int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 
   for (int ipol = 0; ipol < 2; ipol++) 
   {
-    AnitaPol::AnitaPol_t pol = AnitaPol::AnitaPol_t(ipol); 
-    for (int i = 0; i < NUM_SEAVEYS; i++) 
+    pol::pol_t pol = pol::pol_t(ipol); 
+    for (int i = 0; i < k::NUM_HORNS; i++) 
     {
 
       if (last_bin != bin) 
@@ -1637,7 +1602,7 @@ void UCorrelator::AdaptiveButterworthFilter::process(FilteredAnitaEvent * ev)
 
 }
 
-void UCorrelator::AdaptiveButterworthFilter::processOne(AnalysisWaveform * , const RawAnitaHeader * , int , int ) 
+void pueo::UCorrelator::AdaptiveButterworthFilter::processOne(AnalysisWaveform * , const RawHeader * , int , int ) 
 {
 	printf("processOne not implemented yet, sorry!\n");
 }

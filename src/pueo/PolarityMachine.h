@@ -1,16 +1,16 @@
-#ifndef POLARITY_MACHINE_H
-#define POLARITY_MACHINE_H
+#ifndef PUEO_POLARITY_MACHINE_H
+#define PUEO_POLARITY_MACHINE_H
 
 #include "TObject.h"
 #include "FFTtools.h"
 #include "TFile.h"
-#include "AnalysisWaveform.h"
-#include "AnitaVersion.h"
-#include "AnitaDataset.h"
+#include "pueo/AnalysisWaveform.h"
+#include "pueo/Version.h"
+#include "pueo/Dataset.h"
 #include "TRandom3.h"
-#include "RawAnitaHeader.h"
-#include "WaveformCombiner.h"
-#include "FilteredAnitaEvent.h"
+#include "pueo/RawHeader.h"
+#include "pueo/WaveformCombiner.h"
+#include "pueo/FilteredEvent.h"
 #include "TH2D.h"
 
 
@@ -20,11 +20,10 @@
   Andrew Ludwig <abl@uchicago.edu>
   */
 
-namespace AnitaResponse
+namespace pueo 
 {
-  class DeconvolutionMethod; 
-}
 
+  class DeconvolutionMethod; 
 
 class PolarityMachine
 {
@@ -34,7 +33,7 @@ class PolarityMachine
     ~PolarityMachine();
     void zeroInternals();
 
-    void loadTemplates(unsigned int eventTime, int version = AnitaVersion::get());
+    void loadTemplates(unsigned int eventTime, int version = version::get());
 
     /* N is number of times you want to do this
      * eventNumber is the evetn you want to generate the noise using the min bias triggers around
@@ -56,8 +55,8 @@ class PolarityMachine
     AnalysisWaveform* CRtemplate_deconv;
     AnalysisWaveform* CRtemplate_deconv_windowed;
 
-    void setDeconvolutionMethod(AnitaResponse::DeconvolutionMethod* opt);
-    void setCLEANDeconvolution(AnitaResponse::DeconvolutionMethod* opt);
+    void setDeconvolutionMethod(DeconvolutionMethod* opt);
+    void setCLEANDeconvolution(DeconvolutionMethod* opt);
     void setWindowSizeNs(double opt) { windowSizeNs = opt ;}
     void setPadFactor(int opt) { padFactor = opt ;}
     void setTestCoherent(bool opt) { test_coherent = opt ;}
@@ -124,7 +123,7 @@ class PolarityMachine
     std::string getNotchStr(){return fNotchStr ;}
 
   private:
-    AnitaDataset* d;
+    Dataset* d;
     int length;
     int lengthFFT;
     int padFactor;
@@ -141,13 +140,12 @@ class PolarityMachine
     std::vector<int> payloadTimes;
     std::vector<std::string> notchConfigs;
 
-    AnitaResponse::DeconvolutionMethod * deconv;
-    AnitaResponse::DeconvolutionMethod * clean_deconv;
+    DeconvolutionMethod * deconv;
+    DeconvolutionMethod * clean_deconv;
     UCorrelator::WaveformCombiner wfcomb;
 
-    void fillNotchConfigs();
-    void getCRTemplates(int version = AnitaVersion::get());
-    void getImpulseResponseTemplate(int version = AnitaVersion::get());
+    void getCRTemplates(int version = version::get());
+    void getImpulseResponseTemplate(int version =version::get());
 
     TGraph* inputWaveform;
     TGraph* crWaveform;
@@ -157,5 +155,6 @@ class PolarityMachine
     ClassDefNV(PolarityMachine, 1);
 
 };
+}
 
 #endif

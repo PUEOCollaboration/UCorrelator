@@ -1,24 +1,25 @@
-#include "UCFlags.h" 
-#include "UsefulAnitaEvent.h"
-#include "AnitaGeomTool.h" 
+#include "pueo/UCFlags.h" 
+#include "pueo/UsefulEvent.h"
+#include "pueo/GeomTool.h" 
 
 
 
 
-int UCorrelator::flags::checkEmpty(const UsefulAnitaEvent *ev, ULong64_t * save_h, ULong64_t * save_v)
+int pueo::UCorrelator::flags::checkEmpty(const UsefulEvent *ev, std::bitset<k::NUM_HORNS> * save_h, std::bitset<k::NUM_HORNS> * save_v)
 {
   
 
   int nmissing = 0; 
-  for (int i = 0; i < NUM_SEAVEYS; i++) 
+  for (int i = 0; i < k::NUM_HORNS; i++) 
   {
-      int hindex = AnitaGeomTool::getChanIndexFromAntPol(i,AnitaPol::kHorizontal); 
-      int vindex = AnitaGeomTool::getChanIndexFromAntPol(i,AnitaPol::kVertical); 
-      const double *yh = ev->fVolts[hindex]; 
-      const double *yv = ev->fVolts[vindex]; 
+      int hindex = GeomTool::getChanIndexFromAntPol(i,pol::kHorizontal); 
+      int vindex = GeomTool::getChanIndexFromAntPol(i,pol::kVertical); 
+
+      const double *yh = &ev->volts[hindex][0]; 
+      const double *yv = &ev->volts[vindex][0]; 
 
       bool hbad = true; 
-      for (int j = 0; j < ev->fNumPoints[hindex]; j++)
+      for (int j = 0; j < ev->volts[hindex].size(); j++)
       {
         if (yh[j]) 
         {
@@ -28,7 +29,7 @@ int UCorrelator::flags::checkEmpty(const UsefulAnitaEvent *ev, ULong64_t * save_
       }
 
       bool vbad = true; 
-      for (int j = 0; j < ev->fNumPoints[vindex]; j++)
+      for (int j = 0; j < ev->volts[vindex].size(); j++)
       {
         if (yv[j])
         {
@@ -38,8 +39,8 @@ int UCorrelator::flags::checkEmpty(const UsefulAnitaEvent *ev, ULong64_t * save_
       }
 
 
-      if (hbad && save_h) *save_h |= (1 << i); 
-      if (vbad && save_v) *save_v |= (1 << i); 
+      if (hbad && save_h) save_h->set(i);
+      if (vbad && save_v) save_v->set(i); 
 
 
       if (hbad) nmissing++; 

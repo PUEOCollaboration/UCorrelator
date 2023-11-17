@@ -1,4 +1,4 @@
-#include "UCMapStatTools.h"
+#include "pueo/UCMapStatTools.h"
 #include "TH2.h"
 #include <cmath>
 
@@ -7,7 +7,7 @@
 #endif
 
 
-double UCorrelator::getMapMean(const TH2 * interfMap, bool sphWeight, double antOffset) {
+double pueo::UCorrelator::getMapMean(const TH2 * interfMap, bool sphWeight, double antOffset) {
 
 	int numBinsX = interfMap -> GetNbinsX();
 	int numBinsY = interfMap -> GetNbinsY();
@@ -27,7 +27,7 @@ double UCorrelator::getMapMean(const TH2 * interfMap, bool sphWeight, double ant
 }
 
 
-double UCorrelator::getMapRMS(const TH2 * interfMap, bool sphWeight, double antOffset) {
+double pueo::UCorrelator::getMapRMS(const TH2 * interfMap, bool sphWeight, double antOffset) {
 
 	int numBinsX = interfMap -> GetNbinsX();
 	int numBinsY = interfMap -> GetNbinsY();
@@ -55,16 +55,16 @@ double UCorrelator::getMapRMS(const TH2 * interfMap, bool sphWeight, double antO
 }
 
 
-double UCorrelator::getMapSNR(const TH2 * interfMap, bool sphWeight, double antOffset) {
+double pueo::UCorrelator::getMapSNR(const TH2 * interfMap, bool sphWeight, double antOffset) {
 
 	double mapPeak = interfMap -> GetBinContent(interfMap -> GetMaximumBin());
-	double mapRMS = UCorrelator::getMapRMS(interfMap, sphWeight, antOffset);
+	double mapRMS = pueo::UCorrelator::getMapRMS(interfMap, sphWeight, antOffset);
 
 	return mapPeak / mapRMS;
 }
 
 
-double UCorrelator::getMapPeakZScore(const TH2 * interfMap, bool sphWeight, double antOffset) {
+double pueo::UCorrelator::getMapPeakZScore(const TH2 * interfMap, bool sphWeight, double antOffset) {
 
 	double mapPeak = interfMap -> GetBinContent(interfMap -> GetMaximumBin());
 

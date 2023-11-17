@@ -5,12 +5,13 @@
    Ben Strutt is writing a UCorrelator class?
  */
 #include "SineSubtract.h"
-#include "UCFilters.h"
-#include "AnitaConventions.h"
+#include "pueo/UCFilters.h"
+#include "pueo/Conventions.h"
 
 class TFile;
 class TTree;
 
+namespace pueo{
 namespace UCorrelator {
 
 
@@ -25,13 +26,13 @@ class SineSubtractCache {
   
   SineSubtractCache(const char* descr);
   virtual ~SineSubtractCache();
-  const FFTtools::SineSubtractResult* getResult(UInt_t eventNumber, AnitaPol::AnitaPol_t pol, Int_t antenna);
+  const FFTtools::SineSubtractResult* getResult(UInt_t eventNumber, pol::pol_t pol, Int_t antenna);
 
 
   Bool_t fDebug;
  private:
 
-  static TString branchName(AnitaPol::AnitaPol_t pol, Int_t ant);
+  static TString branchName(pol::pol_t pol, Int_t ant);
   static TString fileName(const char* specDir, UInt_t hash, Int_t run);
 
   void loadRun(int run);
@@ -43,12 +44,13 @@ class SineSubtractCache {
   Int_t fCurrentRun;
   Int_t fLastAttemptedRun;
   UInt_t fLastEventNumber;
-  FFTtools::SineSubtractResult* results[AnitaPol::kNotAPol][NUM_SEAVEYS];
+  FFTtools::SineSubtractResult* results[pol::kNotAPol][k::NUM_HORNS];
 
 };
   
 
 
+}
 }
 
 

@@ -1,15 +1,15 @@
-#include "FilteredAnitaEvent.h" 
+#include "pueo/FilteredEvent.h" 
 #include "TString.h"
-#include "AntennaPositions.h"
-#include "DeltaT.h"
+#include "pueo/AntennaPositions.h"
+#include "pueo/DeltaT.h"
 #include "TTree.h"
 #include "TFile.h"
-#include "TrigCache.h"
+#include "pueo/TrigCache.h"
 #include "FFTtools.h"
 #include <assert.h>
-#include "AnitaGeomTool.h"
-#include "Correlator.h"
-#include "AnalysisWaveform.h"
+#include "pueo/GeomTool.h"
+#include "pueo/Correlator.h"
+#include "pueo/AnalysisWaveform.h"
 #include "TStopwatch.h" 
 
 #ifdef UCORRELATOR_OPENMP
@@ -26,6 +26,8 @@
 
 #endif
 
+namespace pueo 
+{
 namespace UCorrelator
 {
   class CorrelatorLocks
@@ -33,18 +35,18 @@ namespace UCorrelator
     public:
 
 #ifdef UCORRELATOR_OPENMP
-      omp_lock_t waveform_locks[NANTENNAS]; 
-      omp_lock_t correlation_locks[NANTENNAS][NANTENNAS]; 
+      omp_lock_t waveform_locks[k::NUM_HORNS]; 
+      omp_lock_t correlation_locks[k::NUM_HORNS][k::NUM_HORNS]; 
 
 
 
       CorrelatorLocks() 
       {
-        for (int i = 0; i < NANTENNAS; i++)
+        for (int i = 0; i < k::NUM_HORNS; i++)
         {
           omp_init_lock(&waveform_locks[i]);
 
-          for (int j = 0; j < NANTENNAS; j++) 
+          for (int j = 0; j < k::NUM_HORNS; j++) 
           {
             omp_init_lock(&correlation_locks[i][j]);
           }
@@ -55,11 +57,11 @@ namespace UCorrelator
       }
       ~CorrelatorLocks() 
       {
-        for (int i = 0; i < NANTENNAS; i++)
+        for (int i = 0; i < k::NUM_HORNS; i++)
         {
           omp_destroy_lock(&waveform_locks[i]);
 
-          for (int j = 0; j < NANTENNAS; j++) 
+          for (int j = 0; j < k::NUM_HORNS; j++) 
           {
             omp_destroy_lock(&correlation_locks[i][j]);
           }
@@ -68,6 +70,7 @@ namespace UCorrelator
       }
 #endif
   };
+}
 }
 
 static int nthreads() 
@@ -110,12 +113,14 @@ static void combineHists(int N, T ** hists )
   for (int i = 1; i <N; i++ )
   {
     __restrict A* v = hists[i]->GetArray(); 
+#ifdef UCORRELATOR_OPENMP
 #pragma omp simd 
     for(int j = 0; j < nbins; j++) 
     {
       sum[j]+=v[j]; 
     }
   }
+#endif
 }
 
 
@@ -124,11 +129,11 @@ static void combineHists(int N, T ** hists )
 #define RAD2DEG (180/M_PI)
 #endif
 
-#define PHI_SECTOR_ANGLE (360. / NUM_PHI)
+#define PHI_SECTOR_ANGLE (360. / pueo::k::NUM_PHI)
 
 
 
-UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_max, int ntheta, double theta_min, double theta_max, bool use_center, bool scale_by_cos_theta, double baseline_weight, double gain_sigma)
+pueo::UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_max, int ntheta, double theta_min, double theta_max, bool use_center, bool scale_by_cos_theta, double baseline_weight, double gain_sigma)
   : scale_cos_theta(scale_by_cos_theta) , baselineWeight(baseline_weight), gainSigma(gain_sigma) 
 {
   TString histname = TString::Format("ucorr_corr_%d",count_the_correlators);
@@ -168,8 +173,8 @@ UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_max, in
   max_phi = 75; 
   max_phi2 = max_phi*max_phi;
 
-  memset(padded_waveforms, 0, NANTENNAS * sizeof(AnalysisWaveform*)); 
-  memset(correlations, 0, NANTENNAS * NANTENNAS * sizeof(AnalysisWaveform*)); 
+  memset(padded_waveforms, 0, k::NUM_HORNS * sizeof(AnalysisWaveform*)); 
+  memset(correlations, 0, k::NUM_HORNS * k::NUM_HORNS * sizeof(AnalysisWaveform*)); 
 
 #ifdef UCORRELATOR_OPENMP
   locks = new CorrelatorLocks; 
@@ -178,18 +183,18 @@ UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_max, in
   groupDelayFlag = 1; 
 }
 
-static int allowedPhisPairOfAntennas(double &lowerAngle, double &higherAngle, double &centerTheta1, double &centerTheta2, double &centerPhi1, double &centerPhi2, int ant1, int ant2, double max_phi, AnitaPol::AnitaPol_t pol)
+static int allowedPhisPairOfAntennas(double &lowerAngle, double &higherAngle, double &centerTheta1, double &centerTheta2, double &centerPhi1, double &centerPhi2, int ant1, int ant2, double max_phi, pueo::pol::pol_t pol)
 {
 
-  int phi1=AnitaGeomTool::Instance()->getPhiFromAnt(ant1);
-  int phi2=AnitaGeomTool::Instance()->getPhiFromAnt(ant2);
+  int phi1=pueo::GeomTool::Instance().getPhiFromAnt(ant1);
+  int phi2=pueo::GeomTool::Instance().getPhiFromAnt(ant2);
   int allowedFlag=0;
   
   int upperlimit=phi2+2;//2 phi sectors on either side
   int lowerlimit=phi2-2;
 
-  if(upperlimit>NUM_PHI-1)upperlimit-=NUM_PHI;
-  if(lowerlimit<0)lowerlimit+=NUM_PHI;
+  if(upperlimit>pueo::k::NUM_PHI-1)upperlimit-=pueo::k::NUM_PHI;
+  if(lowerlimit<0)lowerlimit+=pueo::k::NUM_PHI;
 
   if (upperlimit>lowerlimit){
     if (phi1<=upperlimit && phi1>=lowerlimit){//within 2 phi sectors of eachother
@@ -205,7 +210,7 @@ static int allowedPhisPairOfAntennas(double &lowerAngle, double &higherAngle, do
   
   double centerAngle1, centerAngle2;
 
-  const UCorrelator::AntennaPositions * ap = UCorrelator::AntennaPositions::instance(); 
+  const pueo::UCorrelator::AntennaPositions * ap = pueo::UCorrelator::AntennaPositions::instance(); 
 
   if (allowedFlag==1)
   {
@@ -243,9 +248,9 @@ static int allowedPhisPairOfAntennas(double &lowerAngle, double &higherAngle, do
 
 }
 
-void UCorrelator::Correlator::reset() 
+void pueo::UCorrelator::Correlator::reset() 
 {
-for (int i = 0; i < NANTENNAS; i++)
+for (int i = 0; i < k::NUM_HORNS; i++)
   {
     if (padded_waveforms[i]) 
     {
@@ -253,7 +258,7 @@ for (int i = 0; i < NANTENNAS; i++)
       padded_waveforms[i] = 0; 
     }
 
-    for (int j = 0; j < NANTENNAS; j++) 
+    for (int j = 0; j < k::NUM_HORNS; j++) 
     {
       if (correlations[i][j])
       {
@@ -269,9 +274,9 @@ for (int i = 0; i < NANTENNAS; i++)
 
 
 
-AnalysisWaveform * UCorrelator::Correlator::getCorrelation(int ant1, int ant2) 
+pueo::AnalysisWaveform * pueo::UCorrelator::Correlator::getCorrelation(int ant1, int ant2) 
 {
-//  printf("%d %d / %d \n",ant1,ant2, NANTENNAS); 
+//  printf("%d %d / %d \n",ant1,ant2, k::NUM_HORNS); 
 
 
 #ifdef UCORRELATOR_OPENMP
@@ -338,7 +343,7 @@ AnalysisWaveform * UCorrelator::Correlator::getCorrelation(int ant1, int ant2)
 
 
 
-TH2D * UCorrelator::Correlator::computeZoomed(double phi, double theta, int nphi, double dphi, int ntheta, double dtheta, int nant, TH2D * answer) 
+TH2D * pueo::UCorrelator::Correlator::computeZoomed(double phi, double theta, int nphi, double dphi, int ntheta, double dtheta, int nant, TH2D * answer) 
 {
 
   if (!ev) 
@@ -384,7 +389,7 @@ TH2D * UCorrelator::Correlator::computeZoomed(double phi, double theta, int nphi
 
   TrigCache cache(nphi, dphi, phi0, ntheta,dtheta,theta0, ap, true,nant, nant ? closest : 0); 
 
-  int n2loop = nant ? nant : NANTENNAS;  
+  int n2loop = nant ? nant : k::NUM_HORNS;  
 
   std::vector<std::pair<int,int> > pairs; 
   pairs.reserve(n2loop); 
@@ -396,11 +401,11 @@ TH2D * UCorrelator::Correlator::computeZoomed(double phi, double theta, int nphi
   for (int ant_i = 0; ant_i < n2loop; ant_i++)
   {
     int ant1 = nant ? closest[ant_i] : ant_i; 
-    if (!nant && disallowed_antennas & (1ul << ant1)) continue; 
+    if (!nant && disallowed_antennas.test(ant1)) continue; 
     for (int ant_j = ant_i +1; ant_j < n2loop; ant_j++)
     {
       int ant2 = nant ? closest[ant_j] : ant_j; 
-      if (!nant && disallowed_antennas & (1ul << ant2)) continue; 
+      if (!nant && disallowed_antennas.test (ant2)) continue; 
 
       pairs.push_back(std::pair<int,int>(ant1,ant2));
     }
@@ -483,8 +488,8 @@ static inline bool between(double phi, double low, double high)
 }
 
 
-inline void UCorrelator::Correlator::doAntennas(int ant1, int ant2, TH2D ** these_hists, 
-                                                TH2D ** these_norms, const UCorrelator::TrigCache * cache , 
+inline void pueo::UCorrelator::Correlator::doAntennas(int ant1, int ant2, TH2D ** these_hists, 
+                                                TH2D ** these_norms, const pueo::UCorrelator::TrigCache * cache , 
                                                 const double * center_point )
 {
    int allowedFlag; 
@@ -657,7 +662,7 @@ inline void UCorrelator::Correlator::doAntennas(int ant1, int ant2, TH2D ** thes
 }
 
 
-void UCorrelator::Correlator::compute(const FilteredAnitaEvent * event, AnitaPol::AnitaPol_t whichpol) 
+void pueo::UCorrelator::Correlator::compute(const FilteredEvent * event, pol::pol_t whichpol) 
 {
 
 //  TStopwatch sw; 
@@ -672,8 +677,8 @@ void UCorrelator::Correlator::compute(const FilteredAnitaEvent * event, AnitaPol
   //because who knows what crazy things we might be asked to do. 
   // I suppose we could just require the user to make a different Correlator for each ANITA version... but whatever
   
-  int v = event->getAnitaVersion(); 
-  AnitaVersion::set(v); 
+  int v = event->getPueoVersion(); 
+  version::set(v); 
 
   if (! trigcache[v])
   {
@@ -683,7 +688,7 @@ void UCorrelator::Correlator::compute(const FilteredAnitaEvent * event, AnitaPol
     int ntheta = hist->GetNbinsY(); 
     double theta_max = hist->GetYaxis()->GetXmax(); 
     double theta_min = hist->GetYaxis()->GetXmin(); 
-    trigcache[v] = new TrigCache(nphi, (phi_max-phi_min)/nphi, phi_min, ntheta, (theta_max - theta_min)/ntheta,theta_min, UCorrelator::AntennaPositions::instance(v), use_bin_center); 
+    trigcache[v] = new TrigCache(nphi, (phi_max-phi_min)/nphi, phi_min, ntheta, (theta_max - theta_min)/ntheta,theta_min, pueo::UCorrelator::AntennaPositions::instance(v), use_bin_center); 
   }
 
 
@@ -691,15 +696,15 @@ void UCorrelator::Correlator::compute(const FilteredAnitaEvent * event, AnitaPol
 
 
   std::vector<std::pair<int,int> > pairs; 
-  pairs.reserve(NANTENNAS *NANTENNAS/2); 
+  pairs.reserve(k::NUM_HORNS *k::NUM_HORNS/2); 
 
-  for (int ant1 = 0; ant1 < NANTENNAS; ant1++)
+  for (int ant1 = 0; ant1 < k::NUM_HORNS; ant1++)
   {
-    if (disallowed_antennas & (1ul << ant1)) continue; 
+    if (disallowed_antennas.test(ant1)) continue; 
 
-    for (int ant2 = ant1+1; ant2 < NANTENNAS; ant2++)
+    for (int ant2 = ant1+1; ant2 < k::NUM_HORNS; ant2++)
     {
-      if (disallowed_antennas & (1ul << ant2)) continue; 
+      if (disallowed_antennas.test(ant2)) continue; 
 
       pairs.push_back(std::pair<int,int>(ant1,ant2));;
     }
@@ -753,10 +758,10 @@ SECTIONS
 
 
 
-UCorrelator::Correlator::~Correlator()
+pueo::UCorrelator::Correlator::~Correlator()
 {
 
-  for (int i = 0; i < NUM_ANITAS+1; i++) 
+  for (int i = 0; i < k::NUM_PUEO+1; i++) 
   {
     if (trigcache[i])
     {
@@ -781,7 +786,7 @@ UCorrelator::Correlator::~Correlator()
 }
 
 
-void UCorrelator::Correlator::dumpDeltaTs(const char * fname) const
+void pueo::UCorrelator::Correlator::dumpDeltaTs(const char * fname) const
 {
 
   TFile f(fname,"RECREATE"); 
@@ -813,20 +818,20 @@ void UCorrelator::Correlator::dumpDeltaTs(const char * fname) const
 
   for (ipol = 0; ipol < 2; ipol++)
   {
-    for (ant1= 0; ant1 < NANTENNAS; ant1++) 
+    for (ant1= 0; ant1 < k::NUM_HORNS; ant1++) 
     {
       ant_phi = ap->phiAnt[ipol][ant1]; 
       ant_r = ap->rAnt[ipol][ant1]; 
       ant_z = ap->zAnt[ipol][ant1]; 
       positions->Fill(); 
 
-      for (ant2 = ant1+1; ant2 < NANTENNAS; ant2++)
+      for (ant2 = ant1+1; ant2 < k::NUM_HORNS; ant2++)
       {
         for (phi = 0; phi <=360; phi += 2)
         {
           for (theta = -90; theta <=90; theta +=2) 
           {
-             delta_t = getDeltaT(ant1,ant2,phi,theta,(AnitaPol::AnitaPol_t) ipol, groupDelayFlag); 
+             delta_t = getDeltaT(ant1,ant2,phi,theta,(pol::pol_t) ipol, groupDelayFlag); 
 
              if (groupDelayFlag)
              {

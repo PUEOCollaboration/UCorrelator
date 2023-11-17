@@ -1,7 +1,7 @@
-#include "UCKDE.h" 
+#include "pueo/UCKDE.h" 
 #include "TMath.h" 
 
-ClassImp(UCorrelator::KDE2D); 
+ClassImp(pueo::UCorrelator::KDE2D); 
 
 
 static double dist2(double x0, double y0, double x1, double y1) 
@@ -63,7 +63,7 @@ static int nearest_neighbors(int n, double x, double y, int Npts, const double *
 
 
 
-UCorrelator::KDE2D::KDE2D(int n, const double *xin, const double * yin, const double * weights, KDE2DOptions opt) 
+pueo::UCorrelator::KDE2D::KDE2D(int n, const double *xin, const double * yin, const double * weights, KDE2DOptions opt) 
   : x(xin, xin+n), y(yin,yin+n) 
 {
   if (weights) 
@@ -118,7 +118,7 @@ UCorrelator::KDE2D::KDE2D(int n, const double *xin, const double * yin, const do
 
 
 //TODO vectorize this 
-double UCorrelator::KDE2D::operator()(double xt, double yt) const
+double pueo::UCorrelator::KDE2D::operator()(double xt, double yt) const
 {
 
   double sxinv = 1./sigma_x[0];
@@ -155,7 +155,7 @@ double UCorrelator::KDE2D::operator()(double xt, double yt) const
 }
 
 
-void UCorrelator::KDE2D::getNSigmaBounds(double nsig, double & xmin, double & xmax, double & ymin, double & ymax) const
+void pueo::UCorrelator::KDE2D::getNSigmaBounds(double nsig, double & xmin, double & xmax, double & ymin, double & ymax) const
 {
 
   double sig_x = sigma_x[0]; 
@@ -188,7 +188,7 @@ void UCorrelator::KDE2D::getNSigmaBounds(double nsig, double & xmin, double & xm
 }
 
 
-TF2 * UCorrelator::KDE2D::makeTF2(const char * name, double nsigma_bounds) const
+TF2 * pueo::UCorrelator::KDE2D::makeTF2(const char * name, double nsigma_bounds) const
 {
 
   double xmin,xmax,ymin,ymax; 
@@ -197,7 +197,7 @@ TF2 * UCorrelator::KDE2D::makeTF2(const char * name, double nsigma_bounds) const
   return new TF2(name, this, xmin,xmax,ymin,ymax, 0,2);
 }
 
-TH2 * UCorrelator::KDE2D::makeTH2(double binwidth_x, double binwidth_y, const char * name, const char * title, double nsigma_bounds, double auto_factor) const
+TH2 * pueo::UCorrelator::KDE2D::makeTH2(double binwidth_x, double binwidth_y, const char * name, const char * title, double nsigma_bounds, double auto_factor) const
 {
 
   double xmin,xmax,ymin,ymax;

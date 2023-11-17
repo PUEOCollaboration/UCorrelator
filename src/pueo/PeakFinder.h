@@ -1,14 +1,16 @@
-#ifndef UCORRELATOR_PEAK_FINDER_H
-#define UCORRELATOR_PEAK_FINDER_H
+#ifndef PUEO_UCORRELATOR_PEAK_FINDER_H
+#define PUEO_UCORRELATOR_PEAK_FINDER_H
 
 class TH2D; 
-#include "AnitaEventSummary.h"
+#include "pueo/EventSummary.h"
 
 /** \file 
  *  
  *  This file contains various (2d) peak finding routines
  *
  */ 
+namespace pueo
+{
 namespace UCorrelator
 {
 
@@ -41,7 +43,7 @@ namespace UCorrelator
         double chisq; 
 
         /** copy into pointing hypothesis struct */
-        void copyToPointingHypothesis(AnitaEventSummary::PointingHypothesis *p);
+        void copyToPointingHypothesis(EventSummary::PointingHypothesis *p);
     }; 
 
     /** Finds largest Nmaxima isolated local maxima in a histogram. A maximum is local if it's bigger than any neighboring bins
@@ -72,5 +74,7 @@ namespace UCorrelator
   }
 
 }
+}
 
 #endif
+

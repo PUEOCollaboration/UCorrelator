@@ -1,9 +1,9 @@
-#include "ShapeParameters.h" 
+#include "pueo/ShapeParameters.h" 
 #include "FFTtools.h" 
 #include "TGraph.h" 
 
 
-double UCorrelator::shape::getRiseTime(const TGraph * g, double min, double max, int peak) 
+double pueo::UCorrelator::shape::getRiseTime(const TGraph * g, double min, double max, int peak) 
 {
   int ifirst = -1; 
   int ilast = -1; 
@@ -32,7 +32,7 @@ double UCorrelator::shape::getRiseTime(const TGraph * g, double min, double max,
   return g->GetX()[ilast] - g->GetX()[ifirst]; 
 }
 
-double UCorrelator::shape::getFallTime(const TGraph * g, double min, double max, int peak) 
+double pueo::UCorrelator::shape::getFallTime(const TGraph * g, double min, double max, int peak) 
 {
   int ifirst = -1; 
   int ilast = -1; 
@@ -62,7 +62,7 @@ double UCorrelator::shape::getFallTime(const TGraph * g, double min, double max,
 }
 
 
-double UCorrelator::shape::getWidth(const TGraph * g, double val, int * start, int * end, int peak)
+double pueo::UCorrelator::shape::getWidth(const TGraph * g, double val, int * start, int * end, int peak)
 {
 
   int ifirst = -1; 

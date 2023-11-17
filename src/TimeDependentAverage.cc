@@ -1,29 +1,28 @@
-#include "TimeDependentAverage.h" 
-#include "AnitaVersion.h" 
+#include "pueo/TimeDependentAverage.h" 
+#include "pueo/Version.h" 
 #include "TFile.h" 
-#include "UCImageTools.h" 
+#include "pueo/UCImageTools.h" 
 #include "TSystem.h"
-#include "AnalysisWaveform.h" 
-#include "FilterStrategy.h"
+#include "pueo/AnalysisWaveform.h" 
+#include "pueo/FilterStrategy.h"
 #include "TH2.h" 
-#include "RawAnitaHeader.h" 
-#include "AnitaDataset.h" 
+#include "pueo/RawHeader.h" 
+#include "pueo/Dataset.h" 
 #include "TCut.h" 
-#include "FilteredAnitaEvent.h" 
+#include "pueo/FilteredEvent.h" 
 #include "TMutex.h" 
-#include "BasicFilters.h"
+#include "pueo/BasicFilters.h"
 #include <math.h>// for isnan
 
-static ALFAFilter alfa; 
 
 
 #define DEBUG_SPEC_AVG 
 
 
-UCorrelator::TimeDependentAverage::~TimeDependentAverage()
+pueo::UCorrelator::TimeDependentAverage::~TimeDependentAverage()
 {
 
-  for (int i = 0; i < NUM_SEAVEYS; i++) 
+  for (int i = 0; i < k::NUM_ANTS; i++) 
   {
     for (int j = 0; j < 2; j++) 
     {
@@ -41,9 +40,9 @@ UCorrelator::TimeDependentAverage::~TimeDependentAverage()
   delete norms_minbias; 
 }
 
-int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm, double max_power) 
+int pueo::UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm, double max_power) 
 {
-  AnitaDataset d(run); 
+  Dataset d(run); 
 
 
 
@@ -91,7 +90,7 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
 
 //  printf("%d\n", nbins); 
 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++)
+  for (int ant = 0; ant < k::NUM_HORNS; ant++)
   {
     for (int pol = 0; pol < 2; pol++) 
     {
@@ -141,7 +140,6 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
 
                        
   FilterStrategy str; 
-  if (AnitaVersion::get() == 3) str.addOperation(&alfa); 
 
 
   int N = d.N(); 
@@ -150,20 +148,20 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
   for (int i = 0; i < N; i++)
   {
     d.getEntry(i); 
-    FilteredAnitaEvent ev(d.useful(), &str, d.gps(), d.header()); 
+    FilteredEvent ev(d.useful(), &str, d.gps(), d.header()); 
     
     double t= d.header()->triggerTime; 
 
     //cut out possible blasts. This is perhaps a bit aggressive, but it's worth it 
     double max_ratio_hpol, max_ratio_vpol; 
-    ev.getMinMaxRatio(AnitaPol::kHorizontal, &max_ratio_hpol,0,0,0);
-    if (max_ratio_hpol > max_r || ev.getAveragePower(AnitaPol::kHorizontal)  > max_power) 
+    ev.getMinMaxRatio(pol::kHorizontal, &max_ratio_hpol,0,0,0);
+    if (max_ratio_hpol > max_r || ev.getAveragePower(pol::kHorizontal)  > max_power) 
     {
       nblasts->Fill(t); 
       continue; 
     }
-    ev.getMinMaxRatio(AnitaPol::kVertical, &max_ratio_vpol,0,0,0); 
-    if (max_ratio_vpol > max_r || ev.getAveragePower(AnitaPol::kVertical) > max_power)
+    ev.getMinMaxRatio(pol::kVertical, &max_ratio_vpol,0,0,0); 
+    if (max_ratio_vpol > max_r || ev.getAveragePower(pol::kVertical) > max_power)
     {
       nblasts->Fill(t); 
       continue; 
@@ -177,11 +175,11 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
 #ifdef UCORRELATOR_OPENMP
 #pragma omp parallel for 
 #endif
-    for (int j = 0; j < NUM_SEAVEYS * 2; j++) 
+    for (int j = 0; j < k::NUM_ANTS * 2; j++) 
     {
       int ant = j /2; 
       int pol = j %2; 
-      const AnalysisWaveform * wf = ev.getFilteredGraph(ant,AnitaPol::AnitaPol_t(pol)); 
+      const AnalysisWaveform * wf = ev.getFilteredGraph(ant,pol::pol_t(pol)); 
 
 
       if (!isRF) 
@@ -212,7 +210,7 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
 
   for (int isRF = 0; isRF <=1; isRF++)
   {
-    for (int j = 0; j < NUM_SEAVEYS * 2; j++) 
+    for (int j = 0; j < k::NUM_ANTS * 2; j++) 
     {
       int ant = j /2; 
       int pol = j %2; 
@@ -292,7 +290,7 @@ int UCorrelator::TimeDependentAverage::computeAverage(double max_r, int min_norm
 
 
 
-void UCorrelator::TimeDependentAverage::saveToDir(const char * dir) 
+void pueo::UCorrelator::TimeDependentAverage::saveToDir(const char * dir) 
 {
 
   gSystem->mkdir(dir,true); 
@@ -303,13 +301,13 @@ void UCorrelator::TimeDependentAverage::saveToDir(const char * dir)
   f.cd(); 
 
   //make sure averages and RMS are loaded
-  //getSpectrogram(AnitaPol::kHorizontal,0); 
-  //getRMS(AnitaPol::kHorizontal,0); 
+  //getSpectrogram(pol::kHorizontal,0); 
+  //getRMS(pol::kHorizontal,0); 
   
   f.mkdir("specavg"); 
   f.cd("specavg"); 
 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+  for (int ant = 0; ant < k::NUM_ANTS; ant++) 
   {
      avgs[ant][0]->Write(TString::Format("h%d",ant)); 
      avgs[ant][1]->Write(TString::Format("v%d",ant)); 
@@ -319,7 +317,7 @@ void UCorrelator::TimeDependentAverage::saveToDir(const char * dir)
 
   f.mkdir("specavg_minbias"); 
   f.cd("specavg_minbias"); 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+  for (int ant = 0; ant < k::NUM_ANTS; ant++) 
   {
      avgs_minbias[ant][0]->Write(TString::Format("h%d",ant)); 
      avgs_minbias[ant][1]->Write(TString::Format("v%d",ant)); 
@@ -328,7 +326,7 @@ void UCorrelator::TimeDependentAverage::saveToDir(const char * dir)
 
   f.mkdir("rms"); 
   f.cd("rms"); 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+  for (int ant = 0; ant < k::NUM_ANTS; ant++) 
   {
      rms[ant][0]->Write(TString::Format("h%d",ant)); 
      rms[ant][1]->Write(TString::Format("v%d",ant)); 
@@ -342,7 +340,7 @@ void UCorrelator::TimeDependentAverage::saveToDir(const char * dir)
 
 }
 
-const TH2F * UCorrelator::TimeDependentAverage::getSpectrogram(AnitaPol::AnitaPol_t pol, int ant, bool minbias) const
+const TH2F * pueo::UCorrelator::TimeDependentAverage::getSpectrogram(pol::pol_t pol, int ant, bool minbias) const
 {
 
   
@@ -355,7 +353,7 @@ const TH2F * UCorrelator::TimeDependentAverage::getSpectrogram(AnitaPol::AnitaPo
     {
       TFile * f = TFile::Open(fname); 
       f->cd("specavg"); 
-      for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+      for (int ant = 0; ant < k::NUM_ANTS; ant++) 
       {
         TH2F * found_hpol = (TH2F*) gDirectory->Get(TString::Format("h%d",ant)); 
         avgs[ant][0] = new TH2F(*found_hpol);  
@@ -368,7 +366,7 @@ const TH2F * UCorrelator::TimeDependentAverage::getSpectrogram(AnitaPol::AnitaPo
 
       f->cd("specavg_minbias"); 
 
-      for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+      for (int ant = 0; ant < k::NUM_ANTS; ant++) 
       {
 
         TH2F * found_hpol = (TH2F*) gDirectory->Get(TString::Format("h%d",ant)); 
@@ -391,7 +389,7 @@ const TH2F * UCorrelator::TimeDependentAverage::getSpectrogram(AnitaPol::AnitaPo
 }
 
 
-const TH1D * UCorrelator::TimeDependentAverage::getRMS(AnitaPol::AnitaPol_t pol, int ant) const
+const TH1D * pueo::UCorrelator::TimeDependentAverage::getRMS(pol::pol_t pol, int ant) const
 {
   __sync_synchronize(); //memory barrier
   if (!rms_loaded)
@@ -403,7 +401,7 @@ const TH1D * UCorrelator::TimeDependentAverage::getRMS(AnitaPol::AnitaPol_t pol,
       TFile *f = TFile::Open(fname); 
       f->cd("rms"); 
 
-      for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+      for (int ant = 0; ant < k::NUM_ANTS; ant++) 
       {
 
         TH1D * found_hpol = (TH1D*) gDirectory->Get(TString::Format("h%d",ant)); 
@@ -425,7 +423,7 @@ const TH1D * UCorrelator::TimeDependentAverage::getRMS(AnitaPol::AnitaPol_t pol,
 
 }
 
-UCorrelator::TimeDependentAverage::TimeDependentAverage(int run, int nsecs, const char * persistdir,
+pueo::UCorrelator::TimeDependentAverage::TimeDependentAverage(int run, int nsecs, const char * persistdir,
       double max_bottom_top_ratio, int min_norm, double max_power) 
   :  nsecs(nsecs) , run(run)
 {
@@ -497,7 +495,7 @@ UCorrelator::TimeDependentAverage::TimeDependentAverage(int run, int nsecs, cons
             
 
 
-TH1* UCorrelator::TimeDependentAverage::getSpectrumAverage(AnitaPol::AnitaPol_t pol, int ant, double t, bool db, bool minbias)  const
+TH1* pueo::UCorrelator::TimeDependentAverage::getSpectrumAverage(pol::pol_t pol, int ant, double t, bool db, bool minbias)  const
 {
 
   const TH2 * h =getSpectrogram(pol,ant,minbias); 
@@ -507,7 +505,7 @@ TH1* UCorrelator::TimeDependentAverage::getSpectrumAverage(AnitaPol::AnitaPol_t 
    if (bin == 0 || bin == h->GetNbinsY()+1) return 0 ; 
 
    TString title; 
-   title.Form("Ant%d %c-Pol Average at t=%g", ant, pol == AnitaPol::kHorizontal ? 'H' : 'V', t); 
+   title.Form("Ant%d %c-Pol Average at t=%g", ant, pol == pol::kHorizontal ? 'H' : 'V', t); 
    TString name;
    name.Form("specavg_%d_%d_%g",ant,pol,t); 
    TH1D * answer =  new TH1D(name,title, 131,0,1.31); //todo don't hardcode 
@@ -535,15 +533,15 @@ TH1* UCorrelator::TimeDependentAverage::getSpectrumAverage(AnitaPol::AnitaPol_t 
 
 }
 
-TH1 *UCorrelator::TimeDependentAverage::getSpectrumPercentile(AnitaPol::AnitaPol_t pol, int ant, double pct , bool db, bool minbias ) const
+TH1 *pueo::UCorrelator::TimeDependentAverage::getSpectrumPercentile(pol::pol_t pol, int ant, double pct , bool db, bool minbias ) const
 {
 
-  TH1 * answer = UCorrelator::image::getPctileProjection( getSpectrogram(pol,ant,minbias), 1, pct, true, getNorms(minbias)); 
+  TH1 * answer = pueo::UCorrelator::image::getPctileProjection( getSpectrogram(pol,ant,minbias), 1, pct, true, getNorms(minbias)); 
 
   answer->GetXaxis()->SetTitle("Frequency"); 
   answer->GetYaxis()->SetTitle(db ? "Pctile Power (dBish)" :"Pctile Power (linear)"); 
 
-   answer->SetTitle(TString::Format("Ant%d %c-Pol %gth Pctile", ant, pol == AnitaPol::kHorizontal ? 'H' : 'V', pct*100)); 
+   answer->SetTitle(TString::Format("Ant%d %c-Pol %gth Pctile", ant, pol == pol::kHorizontal ? 'H' : 'V', pct*100)); 
 
    if (db) 
    {
@@ -559,13 +557,13 @@ TH1 *UCorrelator::TimeDependentAverage::getSpectrumPercentile(AnitaPol::AnitaPol
 }
 
 
-double UCorrelator::TimeDependentAverage::getStartTime() const 
+double pueo::UCorrelator::TimeDependentAverage::getStartTime() const 
 {
 
   return norms ? norms->GetXaxis()->GetXmin() : -1; 
 }
 
-double UCorrelator::TimeDependentAverage::getEndTime() const 
+double pueo::UCorrelator::TimeDependentAverage::getEndTime() const 
 {
   return norms ? norms->GetXaxis()->GetXmax() : -1;   
 }
@@ -574,18 +572,18 @@ double UCorrelator::TimeDependentAverage::getEndTime() const
 // to take advantage of magic statics
 struct ThermalAverageWrapper
 {
-  UCorrelator::TimeDependentAverage * avg; 
+  pueo::UCorrelator::TimeDependentAverage * avg; 
   ThermalAverageWrapper()
   {
-     if (AnitaVersion::get() == 4) 
+     if (pueo::version::get() > 1) 
      {
-       fprintf(stderr,"warning: using default terminated thermal spectrum for A3 for peakiness\n"); 
+       fprintf(stderr,"warning: using default terminated thermal spectrum for P1 for peakiness\n"); 
      }
 
      TString dir; 
-     dir.Form("%s/share/UCorrelator/terminated_noise/", getenv("ANITA_UTIL_INSTALL_DIR")); 
+     dir.Form("%s/share/UCorrelator/terminated_noise/", getenv("PUEO_UTIL_INSTALL_DIR")); 
 
-     avg = new UCorrelator::TimeDependentAverage(11382,60, dir.Data()); 
+     avg = new pueo::UCorrelator::TimeDependentAverage(11382,60, dir.Data()); 
   }
 
   static ThermalAverageWrapper & get() 
@@ -596,14 +594,14 @@ struct ThermalAverageWrapper
 
 };
 
-const UCorrelator::TimeDependentAverage* UCorrelator::TimeDependentAverage::defaultThermal() 
+const pueo::UCorrelator::TimeDependentAverage* pueo::UCorrelator::TimeDependentAverage::defaultThermal() 
 {
   return ThermalAverageWrapper::get().avg;
 }
 
 
 
-void UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAverage * thermalSpec, double fractionForNormalization) const
+void pueo::UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAverage * thermalSpec, double fractionForNormalization) const
 {
 
   if (!thermalSpec) thermalSpec = defaultThermal(); 
@@ -612,7 +610,7 @@ void UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAver
 //#ifdef UCORRELATOR_OPENMP
 //#pragma omp parallel for
 //#endif 
-  for (int ant  = 0; ant < NUM_SEAVEYS; ant++)
+  for (int ant  = 0; ant < k::NUM_ANTS; ant++)
   {
 //    printf("%d\n",ant);
     for (int ipol = 0; ipol < 2; ipol++) 
@@ -623,8 +621,8 @@ void UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAver
 //      printf("%d %d\n",ant,ipol);
 
         //get median spectrum 
-        TH1 * median = getSpectrumPercentile(AnitaPol::AnitaPol_t(ipol), ant, 0.5,false,minbias); 
-        TH1 * thermal = thermalSpec->getSpectrumPercentile(AnitaPol::AnitaPol_t(ipol),ant,0.5,false,minbias);
+        TH1 * median = getSpectrumPercentile(pol::pol_t(ipol), ant, 0.5,false,minbias); 
+        TH1 * thermal = thermalSpec->getSpectrumPercentile(pol::pol_t(ipol),ant,0.5,false,minbias);
 
         // now we have to figure out scale. To do this, we compute the mean of the middle frac of points. 
         int index_spec[median->GetNbinsX()]; 
@@ -655,7 +653,7 @@ void UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAver
         TString title; 
         title.Form("%s peakiness ant=%d pol=%d\n", minbias ? "minbias" : "RF" , ant,ipol); 
 
-        const TH2 * avg = getSpectrogram(AnitaPol::AnitaPol_t(ipol),ant,minbias); 
+        const TH2 * avg = getSpectrogram(pol::pol_t(ipol),ant,minbias); 
         TH2D * peaky = new TH2D(name,title,
                                          avg->GetNbinsX(), avg->GetXaxis()->GetXmin(), avg->GetXaxis()->GetXmax(), 
                                          avg->GetNbinsY(), avg->GetYaxis()->GetXmin(), avg->GetYaxis()->GetXmax());  
@@ -682,7 +680,7 @@ void UCorrelator::TimeDependentAverage::computePeakiness(const TimeDependentAver
 
 }
 
-UCorrelator:: TimeDependentAverageLoader::TimeDependentAverageLoader(const char * the_dir, int secs) 
+pueo::UCorrelator:: TimeDependentAverageLoader::TimeDependentAverageLoader(const char * the_dir, int secs) 
   : dir(the_dir), nsecs(secs)
 {
   tavg = 0; 
@@ -690,7 +688,7 @@ UCorrelator:: TimeDependentAverageLoader::TimeDependentAverageLoader(const char 
 
 
 static TMutex mut; 
-const UCorrelator::TimeDependentAverage* UCorrelator::TimeDependentAverageLoader::avg(double t) const
+const pueo::UCorrelator::TimeDependentAverage* pueo::UCorrelator::TimeDependentAverageLoader::avg(double t) const
 {
   TLockGuard l(&mut); 
 
@@ -701,7 +699,7 @@ const UCorrelator::TimeDependentAverage* UCorrelator::TimeDependentAverageLoader
     return tavg; 
   }
 
-  int run = AnitaDataset::getRunAtTime(t); 
+  int run = Dataset::getRunAtTime(t); 
 //  printf("loading average from run %d\n",run); 
   
   if (tavg) delete tavg; 
@@ -711,7 +709,7 @@ const UCorrelator::TimeDependentAverage* UCorrelator::TimeDependentAverageLoader
 
 }
 
-double UCorrelator::TimeDependentAverage::getBlastFraction(double t) const
+double pueo::UCorrelator::TimeDependentAverage::getBlastFraction(double t) const
 {
   //Estimate by estimating nblasts and n, taking their ratio
   int bin = nblasts->GetXaxis()->FindFixBin(t); 
@@ -736,9 +734,9 @@ double UCorrelator::TimeDependentAverage::getBlastFraction(double t) const
 
 
 TMutex loader_map_lock; 
-std::map<int,UCorrelator::TimeDependentAverageLoader*> loader_map; 
+std::map<int,pueo::UCorrelator::TimeDependentAverageLoader*> loader_map; 
 
-static UCorrelator::TimeDependentAverageLoader * getLoader(int nsecs) 
+static pueo::UCorrelator::TimeDependentAverageLoader * getLoader(int nsecs) 
 {
   TLockGuard l(&loader_map_lock); 
 
@@ -747,34 +745,34 @@ static UCorrelator::TimeDependentAverageLoader * getLoader(int nsecs)
     return loader_map[nsecs]; 
   }
 
-  UCorrelator::TimeDependentAverageLoader *  ldr = new UCorrelator::TimeDependentAverageLoader(0,nsecs); 
+  pueo::UCorrelator::TimeDependentAverageLoader *  ldr = new pueo::UCorrelator::TimeDependentAverageLoader(0,nsecs); 
   loader_map[nsecs] = ldr; 
   return ldr; 
 }
 
-double UCorrelator::TimeDependentAverage::getRMS(AnitaPol::AnitaPol_t pol, int ant, double t) const
+double pueo::UCorrelator::TimeDependentAverage::getRMS(pol::pol_t pol, int ant, double t) const
 {
   return ((TH1*) getRMS(pol,ant))->Interpolate(t); 
 }
 
 
 
-double UCorrelator::TimeDependentAverageLoader::getRMS(double t, int ipol, int ant, int nsecs) 
+double pueo::UCorrelator::TimeDependentAverageLoader::getRMS(double t, int ipol, int ant, int nsecs) 
 {
-  return getLoader(nsecs)->avg(t)->getRMS(AnitaPol::AnitaPol_t(ipol),ant,t); 
+  return getLoader(nsecs)->avg(t)->getRMS(pol::pol_t(ipol),ant,t); 
 }
 
-double UCorrelator::TimeDependentAverageLoader::getPayloadBlastFraction(double t,  int nsecs) 
+double pueo::UCorrelator::TimeDependentAverageLoader::getPayloadBlastFraction(double t,  int nsecs) 
 {
   return getLoader(nsecs)->avg(t)->getBlastFraction(t); 
 }
 
 
-const TH2D * UCorrelator::TimeDependentAverage::getPeakiness(AnitaPol::AnitaPol_t pol, int ant, bool minbias) const
+const TH2D * pueo::UCorrelator::TimeDependentAverage::getPeakiness(pol::pol_t pol, int ant, bool minbias) const
 {
 
   //make sure we have averages loaded 
-  getSpectrogram(AnitaPol::kHorizontal,0); 
+  getSpectrogram(pol::kHorizontal,0); 
 
   __sync_synchronize(); //memory barrier
   if (!peakiness_loaded)

@@ -1,18 +1,18 @@
-#include "EASFitter.h" 
+#include "pueo/EASFitter.h" 
 #include "FFTtools.h" 
-#include "DeltaT.h" 
-#include "AntennaPositions.h" 
+#include "pueo/DeltaT.h" 
+#include "pueo/AntennaPositions.h" 
 #include "TH2.h" 
-#include "AnalysisWaveform.h" 
+#include "pueo/AnalysisWaveform.h" 
 #include "TGraph2D.h" 
 #include "TCanvas.h" 
 #include "TFile.h" 
 #include "Minuit2/Minuit2Minimizer.h" 
-#include "FilteredAnitaEvent.h" 
-#include "FreqDomainFunction.h" 
-#include "TimeDependentAverage.h" 
-#include "RawAnitaHeader.h" 
-#include "ResponseManager.h" 
+#include "pueo/FilteredEvent.h" 
+#include "pueo/FreqDomainFunction.h" 
+#include "pueo/TimeDependentAverage.h" 
+#include "pueo/RawHeader.h" 
+#include "pueo/ResponseManager.h" 
 
 
 
@@ -25,7 +25,7 @@ static std::vector<TGraph*> vphase;
 static double getOffAxisPowerMultiplier(int pol, int plane, double f, double deg)
 {
 
-  static TFile foff(Form("%s/share/data/A3offaxis.root", getenv("ANITA_UTIL_INSTALL_DIR"))); 
+  static TFile foff(Form("%s/share/data/A3offaxis.root", getenv("PUEO_UTIL_INSTALL_DIR"))); 
   static bool init = false; 
   static TGraph2D * data[2][2]; 
 
@@ -44,22 +44,22 @@ static double getOffAxisPowerMultiplier(int pol, int plane, double f, double deg
 static void setupHists()
 {
 
-  TFile f(Form("%s/share/data/templates/crTmpltsA3.root",getenv("ANITA_UTIL_INSTALL_DIR"))); 
+  TFile f(Form("%s/share/data/templates/crTmpltsA3.root",getenv("PUEO_UTIL_INSTALL_DIR"))); 
 
   for (int i = 0; i < 27; i++) 
   {
     TGraph * g = FFTtools::cropWave((TGraph*) f.Get(Form("efield%d",i)),0,600); 
     g->SetTitle(Form("Template %d",i)); 
 
-    AnalysisWaveform * wf = new AnalysisWaveform(g->GetN(),g->GetY(), g->GetX()[1]-g->GetX()[0], g->GetX()[0]); 
+    pueo::AnalysisWaveform * wf = new pueo::AnalysisWaveform(g->GetN(),g->GetY(), g->GetX()[1]-g->GetX()[0], g->GetX()[0]); 
     wf->setTitle(g->GetTitle()); 
 
     int roll; 
     wf->hilbertEnvelope()->peakVal(&roll);  
     FFTtools::rotate(wf->updateEven(), -roll); 
 
-    TGraphAligned * gpower = (TGraphAligned*) wf->power(); 
-    TGraphAligned * gphase = new TGraphAligned(*wf->phase()); 
+    pueo::TGraphAligned * gpower = (pueo::TGraphAligned*) wf->power(); 
+    pueo::TGraphAligned * gphase = new pueo::TGraphAligned(*wf->phase()); 
 
     //find the peak of the power spectrum 
     int peak; 
@@ -146,17 +146,17 @@ class EASFitFn : public ROOT::Math::IBaseFunctionMultiDim
   }
 
   
-  EASFitFn(int nants, const int * ants, const FilteredAnitaEvent * ev, int pol, double t, double phi, double theta, const AnitaResponse::ResponseManager  * rm, bool freqonly = false, bool dedisperse = false) 
+  EASFitFn(int nants, const int * ants, const pueo::FilteredEvent * ev, int pol, double t, double phi, double theta, const pueo::ResponseManager  * rm, bool freqonly = false, bool dedisperse = false) 
     : dedisperse(dedisperse), freqonly(freqonly), nants(nants), pol(pol), ants(ants), rms(nants), event(ev),wfs(nants),  fns(nants), t(t), phi(phi), theta(theta), rm(rm)
   {
 
-    AnitaResponse::AllPassDeconvolution allpass;
+    pueo::AllPassDeconvolution allpass;
     for (int i = 0; i < nants; i++) 
     {
-      rms[i] = freqonly ? 0 :  UCorrelator::TimeDependentAverageLoader::getRMS(t,0,ants[i]); 
-      wfs[i] = new AnalysisWaveform(*ev->getRawGraph(ants[i],AnitaPol::kHorizontal));
+      rms[i] = freqonly ? 0 :  pueo::UCorrelator::TimeDependentAverageLoader::getRMS(t,0,ants[i]); 
+      wfs[i] = new pueo::AnalysisWaveform(*ev->getRawGraph(ants[i],pueo::pol::kHorizontal));
       if (!freqonly && dedisperse) rm->response(0,ants[i])->deconvolveInPlace(wfs[i], &allpass); 
-      fns[i] = new FreqDomainFunction(crfitfn, 4, rm->response(0,ants[i]),wfs[i]->deltaT()/4,-wfs[i]->even()->GetX()[wfs[i]->Neven()-1], wfs[i]->even()->GetX()[wfs[i]->Neven()-1]);
+      fns[i] = new pueo::FreqDomainFunction(crfitfn, 4, rm->response(0,ants[i]),wfs[i]->deltaT()/4,-wfs[i]->even()->GetX()[wfs[i]->Neven()-1], wfs[i]->even()->GetX()[wfs[i]->Neven()-1]);
       if (!freqonly && dedisperse) fns[i]->dedisperseResponse(true); 
     }
   }
@@ -174,8 +174,8 @@ class EASFitFn : public ROOT::Math::IBaseFunctionMultiDim
 
     for (int i = 0; i < nants; i++) 
     {
-      double delta_t = UCorrelator::getDeltaT(ants[0], ants[i], phi, theta, AnitaPol::kHorizontal,true); 
-      double dphi = FFTtools::wrap(UCorrelator::AntennaPositions::instance()->phiAnt[0][ants[i]] -phi,360,0); 
+      double delta_t = pueo::UCorrelator::getDeltaT(ants[0], ants[i], phi, theta, pueo::pol::kHorizontal,true); 
+      double dphi = FFTtools::wrap(pueo::UCorrelator::AntennaPositions::instance()->phiAnt[0][ants[i]] -phi,360,0); 
       double dtheta = 10 - theta;
 
       double p[6] = { A*x[2*i+3], freqonly ? 0 : t0-delta_t + x[2*i+4],  T, dphi, dtheta,(double)pol}; 
@@ -212,12 +212,12 @@ class EASFitFn : public ROOT::Math::IBaseFunctionMultiDim
     for (int i = 0; i < nants; i++) 
     {
       c->cd(i+1); 
-      AnalysisWaveform *wf =   wfs[i]; 
+      pueo::AnalysisWaveform *wf =   wfs[i]; 
       wf->updateEven()->SetTitle(Form("Ant %d", ants[i])); 
       wf->updateEven()->setPlottingLimits(1.1,true,20); 
       if (save) 
       {
-        TGraphAligned * g = new TGraphAligned(*wf->even());
+        pueo::TGraphAligned * g = new pueo::TGraphAligned(*wf->even());
         save->push_back(g); 
         g->Draw("al"); 
       }
@@ -239,24 +239,24 @@ class EASFitFn : public ROOT::Math::IBaseFunctionMultiDim
   int pol; 
   const int* ants; 
   std::vector<double> rms; 
-  const FilteredAnitaEvent * event; 
-  std::vector<AnalysisWaveform *> wfs; 
-  mutable std::vector<FreqDomainFunction *> fns; 
+  const pueo::FilteredEvent * event; 
+  std::vector<pueo::AnalysisWaveform *> wfs; 
+  mutable std::vector<pueo::FreqDomainFunction *> fns; 
   double t;
   double phi,theta;
-  const AnitaResponse::ResponseManager * rm; 
+  const pueo::ResponseManager * rm; 
 
 };
 
 
 
-int UCorrelator::EASFitter::fitEvent(int nants, const int * ants, 
-                                    const FilteredAnitaEvent * event, 
+int pueo::UCorrelator::EASFitter::fitEvent(int nants, const int * ants, 
+                                    const FilteredEvent * event, 
                                     double phi, double theta, bool dedisperse) 
 {
 
-  EASFitFn freq_fit(nants, ants, event, AnitaPol::kHorizontal, event->getHeader()->triggerTime, phi,theta,rm,true,dedisperse); 
-  EASFitFn time_fit(nants, ants, event, AnitaPol::kHorizontal, event->getHeader()->triggerTime, phi,theta,rm,false,dedisperse); 
+  EASFitFn freq_fit(nants, ants, event, pol::kHorizontal, event->getHeader()->triggerTime, phi,theta,rm,true,dedisperse); 
+  EASFitFn time_fit(nants, ants, event, pol::kHorizontal, event->getHeader()->triggerTime, phi,theta,rm,false,dedisperse); 
 
   double freq_scale = freq_fit.fns[0]->waveform()->power()->peakVal(); 
 
@@ -326,7 +326,7 @@ int UCorrelator::EASFitter::fitEvent(int nants, const int * ants,
 }
 
 
-UCorrelator::EASFitter::~EASFitter() 
+pueo::UCorrelator::EASFitter::~EASFitter() 
 {
   for (unsigned i = 0; i < plots.size(); i++) delete plots[i]; 
   for (unsigned i = 0; i < save.size(); i++) delete plots[i]; 

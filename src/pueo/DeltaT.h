@@ -1,19 +1,21 @@
-#ifndef _UCORRELATOR_DELTA_T_H
-#define _UCORRELATOR_DELTA_T_H
+#ifndef _PUEO_UCORRELATOR_DELTA_T_H
+#define _PUEO_UCORRELATOR_DELTA_T_H
 
-#include "AntennaPositions.h" 
-#include "AnitaGeomTool.h"
+#include "pueo/AntennaPositions.h" 
+#include "pueo/GeomTool.h"
 #include "FFTtools.h"
-#include "TrigCache.h" 
+#include "pueo/TrigCache.h" 
 
 
 #ifndef DEG2RAD
 #define DEG2RAD (M_PI/180.); 
 #endif
 
+namespace pueo 
+{
 namespace UCorrelator
 {
-  /** Placeholder for now ...  this should be updated for A3*/ 
+  /** Placeholder for now ...  this should be updated for pueo*/ 
   inline double getAntennaGroupDelay(double phidiff, double theta) 
   {
     theta-=10;
@@ -21,7 +23,7 @@ namespace UCorrelator
     double c1 = 1.45676e-8; 
     double c2 = 5.01452e-6; 
 
-    if(AnitaVersion::get() == 4){
+    if(version::get() == 4){
       // anita 4 group delay
       c1 = 1.29e-8; 
       c2 = 4.91e-6; 
@@ -40,7 +42,7 @@ namespace UCorrelator
    * @includeTimeShift set to TRUE corrects for the phase center R offset so that polarization measurements will come out correctly
    * @simulationTimeShift set to TRUE makes the above correction in the opposite direction so that simulated event polarization measurements come out correctly
    * */
-  inline double getDeltaTtoCenter(int ant1, double phi, double theta, AnitaPol::AnitaPol_t pol, bool includeGroupDelay = false, bool includeTimeShift = true, bool simulationTimeShift = false) 
+  inline double getDeltaTtoCenter(int ant1, double phi, double theta, pol::pol_t pol, bool includeGroupDelay = false, bool includeTimeShift = true, bool simulationTimeShift = false) 
   {
     double th = theta * DEG2RAD; 
     const AntennaPositions * ap = AntennaPositions::instance(); 
@@ -49,7 +51,7 @@ namespace UCorrelator
     double r1 = ap->rAnt[pol][ant1];
 
     int whichShift = simulationTimeShift ? -1 : 1;
-    double tshift = includeTimeShift ? ((pol==AnitaPol::kHorizontal) ? 0 : whichShift * (r1 - ap->rAnt[pol^1][ant1])*cos(ph1) * 1e9/C_LIGHT) : 0;
+    double tshift = includeTimeShift ? ((pol==pol::kHorizontal) ? 0 : whichShift * (r1 - ap->rAnt[pol^1][ant1])*cos(ph1) * 1e9/C_LIGHT) : 0;
 
     double part1=ap->zAnt[pol][ant1]*tan(th) - r1 * cos(ph1);
     
@@ -65,7 +67,7 @@ namespace UCorrelator
   }
 
   /**Geometric delay between antennas  */
-  inline double getDeltaT(int ant1, int ant2, double phi, double theta, AnitaPol::AnitaPol_t pol, bool includeGroupDelay = false) 
+  inline double getDeltaT(int ant1, int ant2, double phi, double theta, pol::pol_t pol, bool includeGroupDelay = false) 
   {
     double th = theta * DEG2RAD; 
     const AntennaPositions * ap = AntennaPositions::instance(); 
@@ -93,7 +95,7 @@ namespace UCorrelator
    *  TODO: This has to be vectorized somehow, at least over one dimension, as it's currently one of the bottlenecks. 
    *
    * */ 
-  inline double getDeltaTFast(int ant1, int ant2, int phibin, int thetabin, AnitaPol::AnitaPol_t pol, const TrigCache * cache, bool includeGroupDelay = false) 
+  inline double getDeltaTFast(int ant1, int ant2, int phibin, int thetabin, pol::pol_t pol, const TrigCache * cache, bool includeGroupDelay = false) 
   {
     const AntennaPositions * ap = cache->ap; 
     const int nphi = cache->nphi; 
@@ -115,6 +117,7 @@ namespace UCorrelator
   }
 
 
+}
 }
 
 #endif

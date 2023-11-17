@@ -1,4 +1,4 @@
-#include "PeakFinder.h"
+#include "pueo/PeakFinder.h"
 #include "TH2.h" 
 #include "TF2.h" 
 #include "FFTtools.h"
@@ -109,7 +109,7 @@ static void maskNearbyBins(const TH2D * hist, double distance, int bin, std::vec
 }
 
 
-int UCorrelator::peakfinder::findIsolatedMaxima(const TH2D * hist, double distance, int Nmaxima, RoughMaximum * maxima, 
+int pueo::UCorrelator::peakfinder::findIsolatedMaxima(const TH2D * hist, double distance, int Nmaxima, RoughMaximum * maxima, 
     double minPhi, double maxPhi, double minTheta, double maxTheta, bool exclude, bool use_bin_center)
 {
   int width = hist->GetNbinsX()+2; 
@@ -200,7 +200,7 @@ int UCorrelator::peakfinder::findIsolatedMaxima(const TH2D * hist, double distan
 
 
 
-void UCorrelator::peakfinder::FineMaximum::copyToPointingHypothesis(AnitaEventSummary::PointingHypothesis * p)
+void pueo::UCorrelator::peakfinder::FineMaximum::copyToPointingHypothesis(EventSummary::PointingHypothesis * p)
 {
   p->phi = x; 
   p->theta = -y; 
@@ -289,7 +289,7 @@ static const TDecompSVD & getSVD()
 
 
 template <unsigned N> 
-static void doQuadraticPeakFinding(const TH2D * hist, UCorrelator::peakfinder::FineMaximum * peak)
+static void doQuadraticPeakFinding(const TH2D * hist, pueo::UCorrelator::peakfinder::FineMaximum * peak)
 {
   int xmax, ymax, ignored; 
   hist->GetMaximumBin(xmax,ymax,ignored); 
@@ -371,34 +371,34 @@ static void doQuadraticPeakFinding(const TH2D * hist, UCorrelator::peakfinder::F
 }
 
 
-void UCorrelator::peakfinder::doPeakFindingQuadratic9(const TH2D * hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingQuadratic9(const TH2D * hist, FineMaximum * peak) 
 {
   doQuadraticPeakFinding<3>(hist,peak); 
 }
 
-void UCorrelator::peakfinder::doPeakFindingQuadratic16(const TH2D * hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingQuadratic16(const TH2D * hist, FineMaximum * peak) 
 {
   doQuadraticPeakFinding<4>(hist,peak); 
 }
 
-void UCorrelator::peakfinder::doPeakFindingQuadratic25(const TH2D * hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingQuadratic25(const TH2D * hist, FineMaximum * peak) 
 {
   doQuadraticPeakFinding<5>(hist,peak); 
 }
 
-void UCorrelator::peakfinder::doPeakFindingQuadratic36(const TH2D * hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingQuadratic36(const TH2D * hist, FineMaximum * peak) 
 {
   doQuadraticPeakFinding<6>(hist,peak); 
 }
 
-void UCorrelator::peakfinder::doPeakFindingQuadratic49(const TH2D * hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingQuadratic49(const TH2D * hist, FineMaximum * peak) 
 {
   doQuadraticPeakFinding<7>(hist,peak); 
 }
 
 
 
-void UCorrelator::peakfinder::doInterpolationPeakFindingAbby(const TH2D * hist, FineMaximum * peak)
+void pueo::UCorrelator::peakfinder::doInterpolationPeakFindingAbby(const TH2D * hist, FineMaximum * peak)
 {
   // This is mostly Abby's code, with some stuff in front and after to make it work here
   // As far as I can tell, if there are any correlations between theta and phi in the peak, this will not give you 
@@ -629,7 +629,7 @@ static double gaus2d(double *xx, double *ps)
               );
 }
 
-void UCorrelator::peakfinder::doPeakFindingGaussian(const TH2D * zoomed, FineMaximum * peak)
+void pueo::UCorrelator::peakfinder::doPeakFindingGaussian(const TH2D * zoomed, FineMaximum * peak)
 {
 
 
@@ -810,7 +810,7 @@ double NegativeBicubicFunction::DoDerivative(const double * p, unsigned int coor
 
 static __thread ROOT::Minuit2::Minuit2Minimizer *min = 0; 
 
-void UCorrelator::peakfinder::doInterpolationPeakFindingBicubic(const TH2D * zoomed, FineMaximum * peak, double min_to_consider )
+void pueo::UCorrelator::peakfinder::doInterpolationPeakFindingBicubic(const TH2D * zoomed, FineMaximum * peak, double min_to_consider )
 {
 
   TMatrixD Mf(4,4); 
@@ -872,7 +872,7 @@ void UCorrelator::peakfinder::doInterpolationPeakFindingBicubic(const TH2D * zoo
 }
 
 
-void UCorrelator::peakfinder::doPeakFindingHistogram(const TH2D* hist, FineMaximum * peak) 
+void pueo::UCorrelator::peakfinder::doPeakFindingHistogram(const TH2D* hist, FineMaximum * peak) 
 {
 
   int max_bin = hist->GetMaximumBin(); 

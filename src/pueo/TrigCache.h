@@ -1,13 +1,14 @@
-#ifndef _UCORRELATOR_TRIGCACHE_H
-#define _UCORRELATOR_TRIGCACHE_H
+#ifndef PUEO__UCORRELATOR_TRIGCACHE_H
+#define PUEO__UCORRELATOR_TRIGCACHE_H
 
-#include "AntennaPositions.h"
+#include "pueo/AntennaPositions.h"
 #include <cmath>
 
 #ifndef DEG2RAD
 #define DEG2RAD  (M_PI / 180.)
 #endif
 
+namespace pueo {
 namespace UCorrelator
 {
 
@@ -22,8 +23,8 @@ namespace UCorrelator
     {
 
       phi = new double[nphi]; 
-      int num_ants = nant2use == 0 ? NUM_SEAVEYS : nant2use; 
-      cos_phi = new double[nphi * NUM_SEAVEYS * 2];  //allocate enough space even if unused... the non-wanted ants will be full of junk
+      int num_ants = nant2use == 0 ? k::NUM_HORNS : nant2use; 
+      cos_phi = new double[nphi * k::NUM_HORNS * 2];  //allocate enough space even if unused... the non-wanted ants will be full of junk
       theta = new double[ntheta]; 
       tan_theta = new double[ntheta]; 
       cos_theta = new double[ntheta]; 
@@ -85,6 +86,7 @@ namespace UCorrelator
 
 
 } 
+}
 
 
 #endif

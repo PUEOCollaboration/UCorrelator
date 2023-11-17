@@ -1,20 +1,20 @@
-#include "PointingResolutionModel.h" 
+#include "pueo/PointingResolutionModel.h" 
 #include "TMath.h" 
 #include "TRandom.h" 
 #include "TF1.h" 
 
-#include "AnitaDataset.h" 
+#include "pueo/Dataset.h" 
 #include "TFile.h" 
 #include "TTree.h" 
 #include "TProfile.h" 
 
-ClassImp(UCorrelator::PointingResolution); 
-ClassImp(UCorrelator::PointingResolutionModel); 
-ClassImp(UCorrelator::PointingResolutionModelPlusHeadingError); 
-ClassImp(UCorrelator::ConstantPointingResolutionModel); 
-ClassImp(UCorrelator::PointingResolutionParSNRModel); 
+ClassImp(pueo::UCorrelator::PointingResolution); 
+ClassImp(pueo::UCorrelator::PointingResolutionModel); 
+ClassImp(pueo::UCorrelator::PointingResolutionModelPlusHeadingError); 
+ClassImp(pueo::UCorrelator::ConstantPointingResolutionModel); 
+ClassImp(pueo::UCorrelator::PointingResolutionParSNRModel); 
 
-UCorrelator::PointingResolution::PointingResolution(double phi, double theta,
+pueo::UCorrelator::PointingResolution::PointingResolution(double phi, double theta,
                                                     double dphi, double dtheta, double rho) 
   : phi(phi), theta(theta), dphi(dphi), dtheta(dtheta), rho(rho) 
 {
@@ -28,7 +28,7 @@ UCorrelator::PointingResolution::PointingResolution(double phi, double theta,
 
 
 
-double UCorrelator::PointingResolution::computeProbabilityDensity(double _phi, double _theta)
+double pueo::UCorrelator::PointingResolution::computeProbabilityDensity(double _phi, double _theta)
 {
   double ans; 
   computeProbabilityDensity(1,&_phi,&_theta,&ans) ; 
@@ -37,7 +37,7 @@ double UCorrelator::PointingResolution::computeProbabilityDensity(double _phi, d
 
 
 
-void UCorrelator::PointingResolution::random(double * p_phi, double * p_theta, TRandom * rng) 
+void pueo::UCorrelator::PointingResolution::random(double * p_phi, double * p_theta, TRandom * rng) 
 {
 
   if (!rng) rng = gRandom; 
@@ -49,7 +49,7 @@ void UCorrelator::PointingResolution::random(double * p_phi, double * p_theta, T
 }
 
 
-double * UCorrelator::PointingResolution::computeProbabilityDensity(int N, 
+double * pueo::UCorrelator::PointingResolution::computeProbabilityDensity(int N, 
                                                              const double * __restrict__ vphi,
                                                              const double * __restrict__ vtheta, 
                                                              double * __restrict__ p)
@@ -76,9 +76,9 @@ double * UCorrelator::PointingResolution::computeProbabilityDensity(int N,
 }
 
 
-UCorrelator::PointingResolution * UCorrelator::PointingResolutionParSNRModel::computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution *p) const 
+pueo::UCorrelator::PointingResolution * pueo::UCorrelator::PointingResolutionParSNRModel::computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution *p) const 
 {
-  const AnitaEventSummary::WaveformInfo * info = deconv ? &sum->deconvolved[pol][peak] : &sum->coherent[pol][peak]; 
+  const EventSummary::WaveformInfo * info = deconv ? &sum->deconvolved[pol][peak] : &sum->coherent[pol][peak]; 
   double snr = info->snr; 
   double snr_min, snr_max; 
   f_ph.GetRange(snr_min, snr_max); 
@@ -105,14 +105,14 @@ UCorrelator::PointingResolution * UCorrelator::PointingResolutionParSNRModel::co
 
 static __thread int prof_counter = 0; 
 
-int UCorrelator::HeadingErrorEstimator::estimateHeadingError(double t, double * stdev, double * offset) 
+int pueo::UCorrelator::HeadingErrorEstimator::estimateHeadingError(double t, double * stdev, double * offset) 
 {
-  int run = AnitaDataset::getRunAtTime(t); 
+  int run = Dataset::getRunAtTime(t); 
 
   if (current_run != run) 
   {
     TString str; 
-    str.Form("%s/run%d/gpsEvent%d.root", AnitaDataset::getDataDir(), run,run); 
+    str.Form("%s/run%d/gpsEvent%d.root", Dataset::getDataDir(), run,run); 
     TFile f(str); 
     if (!f.IsOpen()) return -1; 
     TTree * tree = (TTree*) f.Get("adu5PatTree"); 
@@ -140,19 +140,19 @@ int UCorrelator::HeadingErrorEstimator::estimateHeadingError(double t, double * 
   return prof->GetBinEntries(bin); 
 }
 
-UCorrelator::HeadingErrorEstimator::~HeadingErrorEstimator() 
+pueo::UCorrelator::HeadingErrorEstimator::~HeadingErrorEstimator() 
 {
   delete prof; 
 }
 
-UCorrelator::PointingResolutionModelPlusHeadingError::PointingResolutionModelPlusHeadingError(int nsecs, const PointingResolutionModel * other)
+pueo::UCorrelator::PointingResolutionModelPlusHeadingError::PointingResolutionModelPlusHeadingError(int nsecs, const PointingResolutionModel * other)
   : h(nsecs), p(other)
 {
 
 
 }
 
-UCorrelator::PointingResolution * UCorrelator::PointingResolutionModelPlusHeadingError::computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution * point) const
+pueo::UCorrelator::PointingResolution * pueo::UCorrelator::PointingResolutionModelPlusHeadingError::computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution * point) const
 {
   point = p->computePointingResolution(sum,pol,peak,point); 
 

@@ -1,20 +1,20 @@
-#include "UCorrelatorGUI.h" 
+#include "pueo/UCorrelatorGUI.h" 
 #include "TCanvas.h" 
-#include "AnitaEventSummary.h" 
+#include "pueo/EventSummary.h" 
 #include "FFTtools.h" 
-#include "AnalysisWaveform.h" 
-#include "Analyzer.h" 
-#include "WaveformCombiner.h" 
+#include "pueo/AnalysisWaveform.h" 
+#include "pueo/Analyzer.h" 
+#include "pueo/WaveformCombiner.h" 
 #include "TVirtualHistPainter.h"
-#include "FilteredAnitaEvent.h" 
+#include "pueo/FilteredEvent.h" 
 
 
-ClassImp(UCorrelator::gui::Map); 
-ClassImp(UCorrelator::gui::SummaryText); 
+ClassImp(pueo::UCorrelator::gui::Map); 
+ClassImp(pueo::UCorrelator::gui::SummaryText); 
 
 
 
-UCorrelator::gui::Map::Map(const TH2D & hist, const FilteredAnitaEvent * ev, WaveformCombiner * c, WaveformCombiner *cf, AnitaPol::AnitaPol_t pol, const AnitaEventSummary* sum ) 
+pueo::UCorrelator::gui::Map::Map(const TH2D & hist, const FilteredEvent * ev, WaveformCombiner * c, WaveformCombiner *cf, pol::pol_t pol, const EventSummary* sum ) 
   : TH2D(hist), wfpad(0), f(ev), c(c), cf(cf), clicked(0), use_filtered(false),pol(pol)  , heading_axis(GetXaxis()->GetXmin(), GetYaxis()->GetXmax(), GetXaxis()->GetXmax(), GetYaxis()->GetXmax(), GetXaxis()->GetXmin()-ev->getGPS()->heading, GetXaxis()->GetXmax() - ev->getGPS()->heading,510,"=")
 {
   SetStats(0);  
@@ -70,7 +70,7 @@ UCorrelator::gui::Map::Map(const TH2D & hist, const FilteredAnitaEvent * ev, Wav
   deconvolved = 0; 
 }
 
-UCorrelator::gui::Map::Map(const Map & other) 
+pueo::UCorrelator::gui::Map::Map(const Map & other) 
   : TH2D(other) , rough_m(other.rough_m), fine_m(other.fine_m), fine_e(other.fine_e), 
    specials(other.specials),  wfpad(other.wfpad), f(other.f), c(other.c), cf(other.cf),
    clicked(other.clicked), use_filtered(other.use_filtered),  pol(other.pol), last_theta(other.last_theta),
@@ -84,7 +84,7 @@ UCorrelator::gui::Map::Map(const Map & other)
 
 }
 
-void UCorrelator::gui::Map::addRough(const std::vector<std::pair<double,double> > & rough)
+void pueo::UCorrelator::gui::Map::addRough(const std::vector<std::pair<double,double> > & rough)
 {
   for (unsigned i = 0; i < rough.size(); i++)
   {
@@ -92,14 +92,14 @@ void UCorrelator::gui::Map::addRough(const std::vector<std::pair<double,double> 
   }
 }
 
-void UCorrelator::gui::Map::addRough(double x, double y) 
+void pueo::UCorrelator::gui::Map::addRough(double x, double y) 
 {
   TMarker m(x, y,3); 
   m.SetMarkerStyle(2); 
   rough_m.push_back(m); 
 }
 
-void UCorrelator::gui::Map::addFine(const AnitaEventSummary::PointingHypothesis & p) 
+void pueo::UCorrelator::gui::Map::addFine(const EventSummary::PointingHypothesis & p) 
 {
   TMarker m(p.phi, -p.theta,2); 
   m.SetMarkerStyle(2); 
@@ -113,7 +113,7 @@ void UCorrelator::gui::Map::addFine(const AnitaEventSummary::PointingHypothesis 
   fine_e.push_back(ell); 
 }
 
-UCorrelator::gui::Map::~Map()
+pueo::UCorrelator::gui::Map::~Map()
 {
   if (wfpad) delete wfpad; 
   if (clicked) delete clicked; 
@@ -122,7 +122,7 @@ UCorrelator::gui::Map::~Map()
 }
 
 
-void UCorrelator::gui::Map::Paint(Option_t * opt) 
+void pueo::UCorrelator::gui::Map::Paint(Option_t * opt) 
 {
   //we ignore most of the options 
   GetPainter(opt);
@@ -186,20 +186,20 @@ void UCorrelator::gui::Map::Paint(Option_t * opt)
   if (clicked) clicked->Draw(); 
 }
 
-void UCorrelator::gui::Map::SetUseUnfiltered()
+void pueo::UCorrelator::gui::Map::SetUseUnfiltered()
 {
   use_filtered = false; 
   if (wfpad) drawWf(last_phi, last_theta); 
 }
 
-void UCorrelator::gui::Map::SetUseFiltered()
+void pueo::UCorrelator::gui::Map::SetUseFiltered()
 {
   use_filtered = true; 
   if (wfpad) drawWf(last_phi, last_theta); 
 
 }
 
-void UCorrelator::gui::Map::clear()
+void pueo::UCorrelator::gui::Map::clear()
 {
   rough_m.clear(); 
   fine_m.clear(); 
@@ -207,7 +207,7 @@ void UCorrelator::gui::Map::clear()
   specials.clear(); 
 }
 
-void UCorrelator::gui::Map::closeCanvas()
+void pueo::UCorrelator::gui::Map::closeCanvas()
 {
   TMarker * deleteme = clicked; 
   clicked = 0;
@@ -215,7 +215,7 @@ void UCorrelator::gui::Map::closeCanvas()
   delete deleteme; 
 }
 
-void UCorrelator::gui::Map::ExecuteEvent(int event, int px, int  py)
+void pueo::UCorrelator::gui::Map::ExecuteEvent(int event, int px, int  py)
 {
   if (event != kButton1Down && fPainter)
   {
@@ -236,7 +236,7 @@ void UCorrelator::gui::Map::ExecuteEvent(int event, int px, int  py)
 
 }
 
-void UCorrelator::gui::Map::drawWf(double phi, double theta) 
+void pueo::UCorrelator::gui::Map::drawWf(double phi, double theta) 
 {
   last_theta=theta;
   last_phi = phi; 
@@ -244,12 +244,12 @@ void UCorrelator::gui::Map::drawWf(double phi, double theta)
   {
     if (!wfpad) delete wfpad; 
     wfpad = new TCanvas(TString::Format("%s_zoom",GetName()),TString::Format("%s (clicked)", GetTitle()), 800,800); 
-    wfpad->Connect("Closed()", "UCorrelator::gui::Map",this,"closeCanvas()"); 
+    wfpad->Connect("Closed()", "pueo::UCorrelator::gui::Map",this,"closeCanvas()"); 
   }
 
   wfpad->Clear(); 
   WaveformCombiner * wf = use_filtered ? cf : c; 
-  wf->combine(phi, theta, f, (AnitaPol::AnitaPol_t) pol, 0); 
+  wf->combine(phi, theta, f, (pol::pol_t) pol, 0); 
 
 
   if (coherent) delete coherent; 
@@ -279,12 +279,12 @@ void UCorrelator::gui::Map::drawWf(double phi, double theta)
 }
 
 
-UCorrelator::gui::SummaryText::SummaryText(int i,AnitaPol::AnitaPol_t pol, const Analyzer *analyzer, int use_filtered)
+pueo::UCorrelator::gui::SummaryText::SummaryText(int i,pol::pol_t pol, const Analyzer *analyzer, int use_filtered)
   : TPaveText(i/double(analyzer->getSummary()->nPeaks[(int)pol]), 0, (i+1) /double(analyzer->getSummary()->nPeaks[(int) pol]),1)
 
 {
   int ipol = (int) pol; 
-  const AnitaEventSummary * ev = analyzer->getSummary(); 
+  const EventSummary * ev = analyzer->getSummary(); 
   double rough_theta = analyzer->getRoughTheta(pol,i); 
   double rough_phi = analyzer->getRoughPhi(pol,i); 
   AddText(TString::Format("#phi: %0.2f (rough) , %0.3f (fine)", rough_phi, ev->peak[ipol][i].phi)); 

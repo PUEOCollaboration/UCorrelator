@@ -32,6 +32,7 @@
 #pragma link C++ class pueo::UCorrelator::WaveformCombiner;
 #pragma link C++ class pueo::UCorrelator::Analyzer;
 #pragma link C++ class pueo::UCorrelator::AnalysisConfig;
+#pragma link C++ class pueo::UCorrelator::NoiseMachine;
 #pragma link C++ class pueo::UCorrelator::PointingResolution;
 #pragma link C++ class pueo::UCorrelator::ProbabilityMap;
 #pragma link C++ class pueo::UCorrelator::ProbabilityMap::Params;

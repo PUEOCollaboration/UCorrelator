@@ -1,33 +1,33 @@
-#include "Baseline.h" 
+#include "pueo/Baseline.h" 
 #include "TGraph.h" 
 #include <cstdio>
-#include "FilteredAnitaEvent.h" 
+#include "pueo/FilteredEvent.h" 
 #include "TSystem.h" 
-#include "FilterStrategy.h" 
-#include "AnitaDataset.h"
-#include "UsefulAnitaEvent.h"
+#include "pueo/FilterStrategy.h" 
+#include "pueo/Dataset.h"
+#include "pueo/UsefulEvent.h"
 #include "FFTtools.h"
-#include "RawAnitaHeader.h"
-#include "UCFlags.h"
+#include "pueo/RawHeader.h"
+#include "pueo/UCFlags.h"
 #include "TFile.h" 
 #include "FFTWComplex.h" 
 
-#define NSAMPLES 256  
-#define NOMINAL_DT 1./2.6 
+#define NSAMPLES 4096  
+#define NOMINAL_DT 1./3
 
 
 static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000) 
 {
-  char *  datadir = getenv("ANITA_ROOT_DATA"); 
+  char *  datadir = getenv("PUEO_ROOT_DATA"); 
   if (!datadir) 
   {
-    fprintf(stderr,"The environmental variable ANITA_ROOT_DATA must be defined! Aborting."); 
+    fprintf(stderr,"The environmental variable PUEO_ROOT_DATA must be defined! Aborting."); 
     exit(1); 
   }
 
 
-  AnitaDataset d(run); 
-  FilterStrategy empty; 
+  pueo::Dataset d(run); 
+  pueo::FilterStrategy empty; 
 
   int nevents = 0; 
   int i = 10; 
@@ -43,12 +43,12 @@ static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000)
 
     //skip saturated events 
     
-    FilteredAnitaEvent fae(d.useful(), &empty, d.gps(), d.header()); 
+    pueo::FilteredEvent fae(d.useful(), &empty, d.gps(), d.header()); 
 
     if (fae.checkSaturation()) 
       continue; 
 
-    for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+    for (int ant = 0; ant < pueo::k::NUM_HORNS; ant++) 
     {
        if (nevents == 0)
        {
@@ -56,8 +56,8 @@ static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000)
            vpol[ant] = new TGraph(NSAMPLES/2+1); 
        }
        
-       TGraph * gh = d.useful()->getGraph(ant, AnitaPol::kHorizontal); 
-       TGraph * gv = d.useful()->getGraph(ant, AnitaPol::kVertical); 
+       TGraph * gh = d.useful()->makeGraph(ant, pueo::pol::kHorizontal); 
+       TGraph * gv = d.useful()->makeGraph(ant, pueo::pol::kVertical); 
 
        TGraph * igh = FFTtools::getInterpolatedGraph(gh, NOMINAL_DT); 
        TGraph * igv = FFTtools::getInterpolatedGraph(gv, NOMINAL_DT); 
@@ -93,7 +93,7 @@ static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000)
     nevents++; 
   }
 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++)
+  for (int ant = 0; ant < pueo::k::NUM_HORNS; ant++)
   {
     for (int i = 0; i < NSAMPLES / 2 + 1; i++) 
     {
@@ -107,19 +107,19 @@ static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000)
 }
 
 
-void UCorrelator::Baseline::saveToDir(const char * dir) 
+void pueo::UCorrelator::Baseline::saveToDir(const char * dir) 
 {
 
   gSystem->mkdir(dir,true); 
   TFile f(TString::Format("%s/%d_%d.root", dir, run,navg),"RECREATE"); 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+  for (int ant = 0; ant < k::NUM_HORNS; ant++) 
   {
     hpol[ant]->Write(TString::Format("h%d",ant)); 
     vpol[ant]->Write(TString::Format("v%d",ant)); 
   }
 }
 
-UCorrelator::Baseline::Baseline(int run, int navg, const char * persistdir) 
+pueo::UCorrelator::Baseline::Baseline(int run, int navg, const char * persistdir) 
   : navg(navg) , run(run)
 {
   bool foundit = false;
@@ -128,7 +128,7 @@ UCorrelator::Baseline::Baseline(int run, int navg, const char * persistdir)
     TFile f(TString::Format("%s/%d_%d.root", persistdir, run,navg)); 
     if (f.IsOpen())
     {
-      for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+      for (int ant = 0; ant < k::NUM_HORNS; ant++) 
       {
         TGraph * found_hpol = (TGraph*) f.Get(TString::Format("h%d",ant)); 
         hpol[ant] = new TGraph(*found_hpol);  
@@ -157,12 +157,12 @@ UCorrelator::Baseline::Baseline(int run, int navg, const char * persistdir)
   memcpy(hpol_avg->GetX(), hpol[0]->GetX(), sizeof(double) * hpol_avg->GetN());
   memcpy(vpol_avg->GetX(), vpol[0]->GetX(), sizeof(double) * vpol_avg->GetN());
 
-  for (int ant = 0; ant < NUM_SEAVEYS; ant++) 
+  for (int ant = 0; ant < k::NUM_HORNS; ant++) 
   {
     for (int i =0; i < NSAMPLES/2 +1; i++) 
     {
-      hpol_avg->GetY()[i] += hpol[ant]->GetY()[i] / NUM_SEAVEYS; 
-      vpol_avg->GetY()[i] += vpol[ant]->GetY()[i] / NUM_SEAVEYS; 
+      hpol_avg->GetY()[i] += hpol[ant]->GetY()[i] / k::NUM_HORNS; 
+      vpol_avg->GetY()[i] += vpol[ant]->GetY()[i] / k::NUM_HORNS; 
     }
   }
 

@@ -1,5 +1,5 @@
-#ifndef UCORRELATOR_GUI
-#define UCORRELATOR_GUI
+#ifndef PUEO_UCORRELATOR_GUI
+#define PUEO_UCORRELATOR_GUI
 
 /** Various GUI tools 
  *
@@ -11,12 +11,14 @@
 #include "TCanvas.h" 
 #include "TGaxis.h" 
 #include <vector>
-#include "PeakFinder.h" 
+#include "pueo/PeakFinder.h" 
 #include "TMarker.h" 
 #include "TEllipse.h" 
 
-class AnitaEventSummary ; 
-class FilteredAnitaEvent; 
+namespace pueo 
+{
+class EventSummary ; 
+class FilteredEvent; 
 class AnalysisWaveform; 
 
 namespace UCorrelator
@@ -34,7 +36,7 @@ namespace UCorrelator
          *
          * The Summary doesn't have to be filled yet except for the pulsers / MC truth */ 
 
-        Map(const TH2D & hist,const FilteredAnitaEvent* f,  WaveformCombiner * comb, WaveformCombiner * comb_filtered, AnitaPol::AnitaPol_t pol, const AnitaEventSummary * sum); 
+        Map(const TH2D & hist,const FilteredEvent* f,  WaveformCombiner * comb, WaveformCombiner * comb_filtered, pol::pol_t pol, const EventSummary * sum); 
         Map(const Map & other); 
         virtual ~Map(); 
         virtual void Paint(Option_t * opt = ""); 
@@ -45,7 +47,7 @@ namespace UCorrelator
         void addRough(const std::vector<std::pair<double,double> > & rough); 
         void closeCanvas(); 
         void drawWf(double theta,double phi); 
-        void addFine(const AnitaEventSummary::PointingHypothesis & p); 
+        void addFine(const EventSummary::PointingHypothesis & p); 
         void clear(); 
 
       private:
@@ -54,12 +56,12 @@ namespace UCorrelator
         std::vector<TEllipse> fine_e; 
         std::vector<TMarker> specials; 
         TCanvas * wfpad; 
-        const FilteredAnitaEvent *f; 
+        const FilteredEvent *f; 
         WaveformCombiner *c; 
         WaveformCombiner *cf; 
         TMarker * clicked; 
         bool use_filtered; 
-        AnitaPol::AnitaPol_t pol;
+        pol::pol_t pol;
         AnalysisWaveform * coherent; 
         AnalysisWaveform * deconvolved; 
         double last_theta, last_phi; 
@@ -81,7 +83,7 @@ namespace UCorrelator
     class SummaryText : public TPaveText
     { 
       public: 
-        SummaryText(int i, AnitaPol::AnitaPol_t pol, const Analyzer* a, int use_filtered); 
+        SummaryText(int i, pol::pol_t pol, const Analyzer* a, int use_filtered); 
 
         ClassDef(SummaryText,1); 
     }; 
@@ -93,6 +95,7 @@ namespace UCorrelator
 
 
 
+}
 }
 
 #endif

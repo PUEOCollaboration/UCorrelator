@@ -1,10 +1,10 @@
-#include "ProbabilityMap.h" 
-#include "PointingResolutionModel.h"
-#include "Adu5Pat.h" 
+#include "pueo/ProbabilityMap.h" 
+#include "pueo/PointingResolutionModel.h"
 #include "assert.h" 
 #include "BaseList.h" 
 #include "Math/ProbFunc.h"
-#include "UsefulAdu5Pat.h" 
+#include "pueo/UsefulAttitude.h" 
+#include "AntarcticaGeometry.h"
  
 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
@@ -20,14 +20,14 @@
 #include "TFile.h" 
 
 
-ClassImp(UCorrelator::ProbabilityMap); 
+ClassImp(pueo::UCorrelator::ProbabilityMap); 
 
-const AntarcticSegmentationScheme &  UCorrelator::defaultSegmentationScheme() { static StereographicGrid g; return g; } 
-const UCorrelator::PointingResolutionModel & UCorrelator::defaultPointingResolutionModel()  { static UCorrelator::ConstantPointingResolutionModel m; return m; } 
+const AntarcticSegmentationScheme &  pueo::UCorrelator::defaultSegmentationScheme() { static StereographicGrid g; return g; } 
+const pueo::UCorrelator::PointingResolutionModel & pueo::UCorrelator::defaultPointingResolutionModel()  { static pueo::UCorrelator::ConstantPointingResolutionModel m; return m; } 
 
-static UCorrelator::ProbabilityMap::Params default_params; 
+static pueo::UCorrelator::ProbabilityMap::Params default_params; 
 
-UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par) 
+pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par) 
   :  
     p( par ? *par : default_params), 
     ps(p.seg->NSegments(),0), 
@@ -61,7 +61,7 @@ UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par)
 }
 
 
-int UCorrelator::ProbabilityMap::add(const AnitaEventSummary * sum, const Adu5Pat * pat, AnitaPol::AnitaPol_t pol,
+int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::Attitude * pat, pol::pol_t pol,
                                      int peak, double weight, TFile * debugfile) 
 {
 
@@ -230,7 +230,7 @@ int UCorrelator::ProbabilityMap::add(const AnitaEventSummary * sum, const Adu5Pa
   return NFilled; 
 }
 
-int UCorrelator::ProbabilityMap::dumpNonZeroBases()  const 
+int pueo::UCorrelator::ProbabilityMap::dumpNonZeroBases()  const 
 {
   int n = 0;
   for (int i = 0; i < (int) getNBases(); i++)
@@ -245,7 +245,7 @@ int UCorrelator::ProbabilityMap::dumpNonZeroBases()  const
   return n; 
 }
 
-double UCorrelator::ProbabilityMap::overlap(const AnitaEventSummary * sum , const Adu5Pat * pat,  AnitaPol::AnitaPol_t pol, int peak, 
+double pueo::UCorrelator::ProbabilityMap::overlap(const EventSummary * sum , const nav::Attitude * pat,  pol::pol_t pol, int peak, 
                                             bool normalized, double weight,  std::vector<std::pair<int,double> > * bases,
                                             OverlapMode mode,  bool remove_self, std::vector<std::pair<int, double > > * segments, 
                                             std::vector<std::pair<int,double> > * max_dens, double * inv_two_pi_sqrt_det ) const
@@ -323,7 +323,7 @@ double UCorrelator::ProbabilityMap::overlap(const AnitaEventSummary * sum , cons
   return answer; 
 }
 
-int UCorrelator::ProbabilityMap::combineWith(const ProbabilityMap & other) 
+int pueo::UCorrelator::ProbabilityMap::combineWith(const ProbabilityMap & other) 
 {
 
   TString our_scheme; 
@@ -433,8 +433,8 @@ int UCorrelator::ProbabilityMap::combineWith(const ProbabilityMap & other)
 }
 
 
-double  UCorrelator::ProbabilityMap::computeContributions(const AnitaEventSummary * sum, const Adu5Pat * gps, 
-                                                       AnitaPol::AnitaPol_t pol, int peak,
+double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSummary * sum, const nav::Attitude * gps, 
+                                                       pol::pol_t pol, int peak,
                                                       std::vector<std::pair<int,double> > & contribution, 
                                                       std::vector<std::pair<int,double> > * base_contribution, 
                                                       std::vector<std::pair<int,double> > * occlusion, 
@@ -464,12 +464,12 @@ double  UCorrelator::ProbabilityMap::computeContributions(const AnitaEventSummar
   double min_p = dist2dens(maxDistance(), inv_two_pi_sqrt_det); 
 
   std::vector<int> used ( segmentationScheme()->NSegments()); 
-  UsefulAdu5Pat pat(gps); 
+  UsefulAttitude pat(gps); 
 
   if (p.projection == Params::BACKWARD) 
   {
     //start with guess
-    const AnitaEventSummary::PointingHypothesis *pk = &sum->peak[pol][peak];  
+    const EventSummary::PointingHypothesis *pk = &sum->peak[pol][peak];  
     PayloadParameters guess;  
     int status =  PayloadParameters::findSourceOnContinent(pk->theta,pk->phi,gps, &guess, p.refract, p.collision_detection ? p.collision_params.dx : 0); 
     if (p.verbosity > 2) 
@@ -818,7 +818,7 @@ double  UCorrelator::ProbabilityMap::computeContributions(const AnitaEventSummar
   return inv_two_pi_sqrt_det; 
 }
 
-int UCorrelator::ProbabilityMap::groupAdjacent(const double * vals_to_group, std::vector<std::vector<int> > * groups, double * counts, std::vector<double>  * dist) const
+int pueo::UCorrelator::ProbabilityMap::groupAdjacent(const double * vals_to_group, std::vector<std::vector<int> > * groups, double * counts, std::vector<double>  * dist) const
 {
   std::vector<bool> consumed (p.seg->NSegments()); 
   int ngroups = 0; 
@@ -877,7 +877,7 @@ int UCorrelator::ProbabilityMap::groupAdjacent(const double * vals_to_group, std
 }
 
 
-int UCorrelator::ProbabilityMap::makeMultiplicityTable(int level, bool blind, bool draw) const
+int pueo::UCorrelator::ProbabilityMap::makeMultiplicityTable(int level, bool blind, bool draw) const
 {
 
 
@@ -989,7 +989,7 @@ int UCorrelator::ProbabilityMap::makeMultiplicityTable(int level, bool blind, bo
 }
 
 
-double UCorrelator::ProbabilityMap::getProbSumsIntegral(bool norm) const
+double pueo::UCorrelator::ProbabilityMap::getProbSumsIntegral(bool norm) const
 {
   const double * V = getProbSums(norm); 
   int N = segmentationScheme()->NSegments(); 

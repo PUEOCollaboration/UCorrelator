@@ -1,11 +1,13 @@
-#ifndef _UCORRELATOR_BASELINE_H 
-#define _UCORRELATOR_BASELINE_H 
+#ifndef _PUEO_UCORRELATOR_BASELINE_H 
+#define _PUEO_UCORRELATOR_BASELINE_H 
 
 /* Implementation of RF Baselines */ 
 
 class TGraph; 
-#include "AnitaConventions.h" 
-#include "AnitaGeomTool.h"
+#include "pueo/Conventions.h" 
+#include "pueo/GeomTool.h"
+namespace pueo 
+{
 namespace UCorrelator
 {
 
@@ -46,19 +48,19 @@ namespace UCorrelator
       void saveToDir(const char * dir); 
 
       /** Getters for the baseline */ 
-      const TGraph *getBaseline(AnitaPol::AnitaPol_t pol, int ant)
-        { return pol == AnitaPol::kHorizontal? hpol[ant] : vpol[ant] ; }
+      const TGraph *getBaseline(pol::pol_t pol, int ant)
+        { return pol == pol::kHorizontal? hpol[ant] : vpol[ant] ; }
       const TGraph *getBaselineHPol(int ant)  { return hpol[ant]; } 
       const TGraph *getBaselineVPol(int ant)  { return vpol[ant]; } 
 
-      const TGraph *getBaselineAverage(AnitaPol::AnitaPol_t pol)
-        { return pol == AnitaPol::kHorizontal? hpol_avg : vpol_avg ; }
+      const TGraph *getBaselineAverage(pol::pol_t pol)
+        { return pol == pol::kHorizontal? hpol_avg : vpol_avg ; }
       const TGraph *getBaselineAverageHPol()  { return hpol_avg; } 
       const TGraph *getBaselineAverageVPol()  { return vpol_avg; } 
 
     private: 
-      TGraph * hpol[NUM_SEAVEYS]; 
-      TGraph * vpol[NUM_SEAVEYS];  
+      TGraph * hpol[k::NUM_HORNS]; 
+      TGraph * vpol[k::NUM_HORNS];  
       TGraph * hpol_avg;
       TGraph * vpol_avg;
       int navg; 
@@ -67,6 +69,7 @@ namespace UCorrelator
 
   };
 
+}
 }
 
 #endif 

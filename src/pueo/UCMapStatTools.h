@@ -1,5 +1,5 @@
-#ifndef UCORRELATOR_MAP_STAT_TOOLS_H
-#define UCORRELATOR_MAP_STAT_TOOLS_H
+#ifndef PUEO_UCORRELATOR_MAP_STAT_TOOLS_H
+#define PUEO_UCORRELATOR_MAP_STAT_TOOLS_H
 
 /*  Tools written by John Russell <jwruss@hawaii.edu> to account for the implicit spherical geometry
  *  of ANITA interferometric maps.
@@ -9,6 +9,8 @@
 class TH2;
 
 
+namespace pueo 
+{
 namespace UCorrelator {
 
 	/*  Implementation of interferometric map mean which accounts for spherical geometry by default.
@@ -28,6 +30,7 @@ namespace UCorrelator {
 	/*  Implementation of interferometric map peak Z-score which accounts for spherical geometry by default.
 	 */
 	double getMapPeakZScore(const TH2 * interfMap, bool sphWeight = true, double antOffset = 0);
+}
 }
 
 #endif

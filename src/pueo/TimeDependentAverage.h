@@ -1,5 +1,5 @@
-#ifndef _UCORRELATOR_TIME_DEPENDENT_AVERAGE_H 
-#define _UCORRELATOR_TIME_DEPENDENT_AVERAGE_H 
+#ifndef _PUEO_UCORRELATOR_TIME_DEPENDENT_AVERAGE_H 
+#define _PUEO_UCORRELATOR_TIME_DEPENDENT_AVERAGE_H 
 
 /* Implementation of RF TimeDependentAverages */ 
 
@@ -8,11 +8,12 @@ class TH1D;
 class TH1I; 
 class TH1; 
 class TH2D; 
-#include "AnitaConventions.h" 
-#include "AnitaGeomTool.h"
+#include "pueo/Conventions.h" 
+#include "pueo/GeomTool.h"
 #include "TString.h" 
 #include "TMutex.h" 
   
+namespace pueo {
 namespace UCorrelator
 {
 
@@ -63,29 +64,29 @@ namespace UCorrelator
       void saveToDir(const char * dir); 
 
       /* Get the spectrogrma at a time. This currently does not interpoolate... just picks the closet bin */ 
-      TH1 *getSpectrumAverage(AnitaPol::AnitaPol_t pol, int ant, double t, bool db = false, bool minbias = false) const;
+      TH1 *getSpectrumAverage(pol::pol_t pol, int ant, double t, bool db = false, bool minbias = false) const;
 
       /* Get the spectrum at a given percentile. e.g. at pct = 0.5, gives the median spectrum */ 
-      TH1 *getSpectrumPercentile(AnitaPol::AnitaPol_t pol, int ant, double pct = 0.1, bool db = false, bool minbias = false) const; 
+      TH1 *getSpectrumPercentile(pol::pol_t pol, int ant, double pct = 0.1, bool db = false, bool minbias = false) const; 
 
       double getStartTime() const; 
       double getEndTime() const; 
 
-      const TH2F * getSpectrogram(AnitaPol::AnitaPol_t pol, int ant, bool minbias = false) const; 
-      const TH1D * getRMS(AnitaPol::AnitaPol_t pol, int ant) const;
-      double getRMS(AnitaPol::AnitaPol_t pol, int ant, double t) const; 
+      const TH2F * getSpectrogram(pol::pol_t pol, int ant, bool minbias = false) const; 
+      const TH1D * getRMS(pol::pol_t pol, int ant) const;
+      double getRMS(pol::pol_t pol, int ant, double t) const; 
       const TH1I * getNBlasts() const { return nblasts; } 
       double getBlastFraction(double t) const; 
       const TH1I * getNorms(bool minbias = false) const { return minbias ? norms_minbias : norms; }
-      const TH2D * getPeakiness(AnitaPol::AnitaPol_t pol, int ant, bool minbias = false) const; 
+      const TH2D * getPeakiness(pol::pol_t pol, int ant, bool minbias = false) const; 
       int getRun() const { return run; } 
       int getNsecs() const { return nsecs; } 
 
     private: 
       //these are read on demand since they're biggish 
-      mutable TH2F * avgs[NUM_SEAVEYS][2]; 
-      mutable TH2F * avgs_minbias[NUM_SEAVEYS][2]; 
-      mutable TH1D * rms[NUM_SEAVEYS][2]; 
+      mutable TH2F * avgs[k::NUM_ANTS][2]; 
+      mutable TH2F * avgs_minbias[k::NUM_ANTS][2]; 
+      mutable TH1D * rms[k::NUM_ANTS][2]; 
       mutable bool avgs_loaded; 
       mutable bool rms_loaded; 
       mutable bool peakiness_loaded; ; 
@@ -94,8 +95,8 @@ namespace UCorrelator
       TH1I * norms_minbias; 
 
       mutable TMutex m; 
-      mutable TH2D * peakiness[NUM_SEAVEYS][2]; 
-      mutable TH2D * peakiness_minbias[NUM_SEAVEYS][2]; 
+      mutable TH2D * peakiness[k::NUM_ANTS][2]; 
+      mutable TH2D * peakiness_minbias[k::NUM_ANTS][2]; 
       TString fname; 
       int computeAverage(double max_r, int min_norm, double max_power); 
       int nsecs; 
@@ -136,6 +137,7 @@ namespace UCorrelator
   }; 
 
 
+}
 }
 
 #endif 

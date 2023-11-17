@@ -1,19 +1,19 @@
-#include "WaveformCombiner.h" 
-#include "AntennaPositions.h" 
+#include "pueo/WaveformCombiner.h" 
+#include "pueo/AntennaPositions.h" 
 #include <vector> 
-#include "BasicFilters.h" 
-#include "FilteredAnitaEvent.h"
-#include "AnitaVersion.h" 
+#include "pueo/BasicFilters.h" 
+#include "pueo/FilteredEvent.h"
+#include "pueo/Version.h" 
 #include "FFTtools.h"
-#include "ResponseManager.h" 
-#include "SystemResponse.h"
-#include "DeltaT.h"
+#include "pueo/ResponseManager.h" 
+#include "pueo/SystemResponse.h"
+#include "pueo/DeltaT.h"
 #include <dirent.h>
 #include <sys/types.h>
 #include <stdio.h>
 
-  UCorrelator::WaveformCombiner::WaveformCombiner(int nantennas, int npad, bool useUnfiltered, bool deconvolve, const AnitaResponse::ResponseManager * response, bool alfa_hack)
-: coherent(260), deconvolved(260), alfa_hack(alfa_hack)
+  pueo::UCorrelator::WaveformCombiner::WaveformCombiner(int nantennas, int npad, bool useUnfiltered, bool deconvolve, const ResponseManager * response)
+: coherent(2048), deconvolved(2048)
 {
   setNAntennas(nantennas); 
   setNPad(npad); 
@@ -37,11 +37,11 @@
 
 
 
-UCorrelator::WaveformCombiner::~WaveformCombiner()
+pueo::UCorrelator::WaveformCombiner::~WaveformCombiner()
 {
 }
 
-const AnalysisWaveform * UCorrelator::WaveformCombiner::getDeconvolved() const 
+const pueo::AnalysisWaveform * pueo::UCorrelator::WaveformCombiner::getDeconvolved() const 
 {
 
   if (!do_deconvolution)
@@ -77,7 +77,7 @@ static void addToGraph(TGraph * g, const TGraph * h)
 }
 
 
-const AnalysisWaveform * UCorrelator::WaveformCombiner::wf (const FilteredAnitaEvent * event, int ant, AnitaPol::AnitaPol_t pol) 
+const pueo::AnalysisWaveform * pueo::UCorrelator::WaveformCombiner::wf (const FilteredEvent * event, int ant, pol::pol_t pol) 
 {
   return use_raw ? event->getRawGraph(ant, pol) : event->getFilteredGraph(ant,pol); 
 
@@ -85,16 +85,15 @@ const AnalysisWaveform * UCorrelator::WaveformCombiner::wf (const FilteredAnitaE
 }
 
 
-static SimplePassBandFilter alfa_filter(0,0.6);  
 
-void UCorrelator::WaveformCombiner::combine(double phi, double theta, const FilteredAnitaEvent * event, AnitaPol::AnitaPol_t pol, ULong64_t disallowed, double t0, double t1, double * avg_of_peaks, bool use_hilbert)
+void pueo::UCorrelator::WaveformCombiner::combine(double phi, double theta, const FilteredEvent * event, pol::pol_t pol, std::bitset<k::NUM_HORNS> disallowed, double t0, double t1, double * avg_of_peaks, bool use_hilbert)
 {
 
   std::vector<AnalysisWaveform> padded(nant);
   const int numDeconv = do_deconvolution ? nant : 0;
   std::vector<AnalysisWaveform> deconv(numDeconv);
 
-  const UCorrelator::AntennaPositions * antpos = UCorrelator::AntennaPositions::instance(); 
+  const pueo::UCorrelator::AntennaPositions * antpos = pueo::UCorrelator::AntennaPositions::instance(); 
   nant = antpos->getClosestAntennas(phi, nant, &antennas[0], disallowed); 
   double delays[nant]; 
 
@@ -115,7 +114,7 @@ void UCorrelator::WaveformCombiner::combine(double phi, double theta, const Filt
   {
     //ensure transform already calculated so we don't have to repeat when deconvolving
     (void) wf(event,antennas[i],pol)->freq(); 
-    int ipol = (pol == AnitaPol::kVertical) ? 1 : 0;
+    int ipol = (pol == pol::kVertical) ? 1 : 0;
 
     padded[i].~AnalysisWaveform(); 
     new (&padded[i]) AnalysisWaveform(*wf(event,antennas[i],pol));
@@ -139,11 +138,7 @@ void UCorrelator::WaveformCombiner::combine(double phi, double theta, const Filt
       addToGraph(&coherent_avg_spectrum,wf(event,antennas[0],pol)->power()); 
     }
 
-    //ALFA HACK IS HERE 
-    if (alfa_hack && AnitaVersion::get() == 3 &&  pol == AnitaPol::kHorizontal && (antennas[i] == 4 || antennas[i] == 12))
-    {
-      alfa_filter.processOne(&padded[i]); 
-    }
+    
 
     if (avg_of_peaks) 
     {
@@ -199,7 +194,7 @@ void UCorrelator::WaveformCombiner::combine(double phi, double theta, const Filt
 }
 
 
-double UCorrelator::WaveformCombiner::combineWaveforms(int nwf, const AnalysisWaveform * wf, const double * delays, const double * scales, AnalysisWaveform * out, double min, double max, int checkvpp)
+double pueo::UCorrelator::WaveformCombiner::combineWaveforms(int nwf, const AnalysisWaveform * wf, const double * delays, const double * scales, AnalysisWaveform * out, double min, double max, int checkvpp)
 {
   // we want to make the waveform as big as the entire span of all the waveforms to combine 
 
@@ -244,13 +239,13 @@ double UCorrelator::WaveformCombiner::combineWaveforms(int nwf, const AnalysisWa
   return maxvpp; 
 }
 
-void UCorrelator::WaveformCombiner::setExtraFilters(FilterStrategy* extra)
+void pueo::UCorrelator::WaveformCombiner::setExtraFilters(FilterStrategy* extra)
 {
   if(extra_filters) delete extra_filters;
   extra_filters = extra;
 }
 
-void UCorrelator::WaveformCombiner::setExtraFiltersDeconvolved(FilterStrategy* extra)
+void pueo::UCorrelator::WaveformCombiner::setExtraFiltersDeconvolved(FilterStrategy* extra)
 {
   if(extra_filters_deconvolved) delete extra_filters_deconvolved;
   extra_filters_deconvolved = extra;

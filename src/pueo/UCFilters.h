@@ -1,26 +1,25 @@
-#ifndef _UCORRELATOR_FILTERS_H_
-#define _UCORRELATOR_FILTERS_H_
+#ifndef PUEO_UCORRELATOR_FILTERS_H_
+#define PUEO_UCORRELATOR_FILTERS_H_
 
 /** \file This file implements all of the filters used in MyCorrelator 
  * in the new framework. 
  * */ 
 
-#include "FilterOperation.h" 
+#include "pueo/FilterOperation.h" 
 #include "TString.h" 
 #include "DigitalFilter.h" 
 #include "Baseline.h"
 #include "SineSubtract.h" 
-#include "AnalysisWaveform.h" 
+#include "pueo/AnalysisWaveform.h" 
 
-class FilteredAnitaEvent; 
-class RawAnitaHeader; 
+namespace pueo 
+{
+class FilteredEvent; 
+class RawHeader; 
 class FilterStrategy; 
 
-
-namespace AnitaResponse{
-  class ResponseManager; 
-  class DeconvolutionMethod; 
-}
+class ResponseManager; 
+class DeconvolutionMethod; 
 
 namespace UCorrelator 
 {
@@ -108,7 +107,7 @@ namespace UCorrelator
 
 
   /** Condition used for satellite filter */ 
-  bool antennaIsNorthFacing(FilteredAnitaEvent *ev, int ant, AnitaPol::AnitaPol_t); 
+  bool antennaIsNorthFacing(FilteredEvent *ev, int ant, pol::pol_t); 
 
 
   /** 
@@ -126,7 +125,7 @@ namespace UCorrelator
 
       const char * tag() const { return "ComplicatedNotchFilter"; } 
       const char * description() const { return desc.Data(); } 
-      virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0); 
+      virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0); 
     private: 
       TString desc; ; 
       double min,max; 
@@ -157,8 +156,8 @@ namespace UCorrelator
 
       const char * tag() const { return "AdaptiveFilter"; } 
       const char * description() const { return desc_string.Data(); }
-      virtual void process(FilteredAnitaEvent * event); 
-      virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0); 
+      virtual void process(FilteredEvent * event); 
+      virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0); 
       unsigned nOutputs() const { return 6 ; } 
       virtual void fillOutput(unsigned i, double * vars) const; 
       const char * outputName(unsigned i) const; 
@@ -219,20 +218,20 @@ namespace UCorrelator
       const char * description() const { return desc_string.Data(); } 
       unsigned nOutputs() const { return 1+2*(2+3*nstored_freqs); }
       const char * outputName(unsigned i) const{ return output_names[i].Data(); }
-      unsigned outputLength(unsigned i) const{ return i == 0 ? 1 : NUM_SEAVEYS; } 
+      unsigned outputLength(unsigned i) const{ return i == 0 ? 1 : k::NUM_HORNS; } 
       void fillOutput(unsigned i, double * vars) const; 
       void setVerbose(bool v); 
 
       void setPeakFindingOption(FFTtools::SineSubtract::PeakFindingOption option, const double * params = 0);
       void setEnvelopeOption(FFTtools::SineSubtract::EnvelopeOption option, const double * params = 0);
-      virtual void process(FilteredAnitaEvent * ev); 
-      virtual void processOne(AnalysisWaveform* wf,const RawAnitaHeader* h,int i, int pol); 
-      const FFTtools::SineSubtract* sinsub(AnitaPol::AnitaPol_t pol, int ant) const { return subs[pol][ant] ;} 
+      virtual void process(FilteredEvent * ev); 
+      virtual void processOne(AnalysisWaveform* wf,const RawHeader* h,int i, int pol); 
+      const FFTtools::SineSubtract* sinsub(pol::pol_t pol, int ant) const { return subs[pol][ant] ;} 
     private:
-      FFTtools::SineSubtract * subs[2][NUM_SEAVEYS]; 
+      FFTtools::SineSubtract * subs[2][k::NUM_HORNS]; 
       double min_power_ratio; 
       const TimeDependentAverageLoader * spec; 
-      TGraph * reduction[2][NUM_SEAVEYS]; 
+      TGraph * reduction[2][k::NUM_HORNS]; 
       unsigned last_t; 
       TString desc_string; 
       std::vector<TString> output_names;
@@ -244,7 +243,7 @@ namespace UCorrelator
    protected:
       SineSubtractCache* sine_sub_cache;
       void refresh_cache(UInt_t eventNumber);
-      const FFTtools::SineSubtractResult* cached_ssr[2][NUM_SEAVEYS];
+      const FFTtools::SineSubtractResult* cached_ssr[2][k::NUM_HORNS];
   };
 
   class AdaptiveBrickWallFilter : public FilterOperation
@@ -254,8 +253,8 @@ namespace UCorrelator
 
       const char * tag() const { return "AdaptiveBrickWallFilter"; } 
       const char * description() const{ return desc_string.Data(); } 
-      virtual void process(FilteredAnitaEvent *ev); 
-			virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0);
+      virtual void process(FilteredEvent *ev); 
+			virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0);
       virtual ~AdaptiveBrickWallFilter();
     private:
       TString desc_string; 
@@ -264,7 +263,7 @@ namespace UCorrelator
       bool fill; 
       int last_bin; 
       int instance; 
-      TH1* sp[2][NUM_SEAVEYS]; 
+      TH1* sp[2][k::NUM_HORNS]; 
   }; 
 
 
@@ -277,11 +276,11 @@ namespace UCorrelator
 
       const char * tag() const { return "AdaptiveMinimumPhaseFilter"; } 
       const char * description() const{ return desc_string.Data(); } 
-      virtual void process(FilteredAnitaEvent *ev); 
-			virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0);
+      virtual void process(FilteredEvent *ev); 
+			virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0);
       virtual ~AdaptiveMinimumPhaseFilter();  
-      TGraph * getCurrentFilterTimeDomain(AnitaPol::AnitaPol_t pol, int i) const; 
-      TGraph * getCurrentFilterPower(AnitaPol::AnitaPol_t pol, int i) const; 
+      TGraph * getCurrentFilterTimeDomain(pol::pol_t pol, int i) const; 
+      TGraph * getCurrentFilterPower(pol::pol_t pol, int i) const; 
 
     private: 
       TString desc_string; 
@@ -289,8 +288,8 @@ namespace UCorrelator
       int npad; 
       double exponent; 
       int last_bin; 
-      FFTWComplex * filt[2][NUM_SEAVEYS]; 
-      int size[2][NUM_SEAVEYS]; 
+      FFTWComplex * filt[2][k::NUM_HORNS]; 
+      int size[2][k::NUM_HORNS]; 
   }; 
 
 
@@ -299,12 +298,12 @@ namespace UCorrelator
     public: 
       AdaptiveButterworthFilter(const TimeDependentAverageLoader *avg, double peakiness_threshold = 2, int order = 2, double width = 0.05) ; 
 
-      virtual void process(FilteredAnitaEvent *ev) ; 
-			virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0);
+      virtual void process(FilteredEvent *ev) ; 
+			virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0);
       virtual ~AdaptiveButterworthFilter() {; } 
       const char * tag() const { return "AdaptiveButterworthFilter"; } 
       const char * description() const{ return desc_string.Data(); } 
-      const FFTtools::DigitalFilterSeries * getFilter(AnitaPol::AnitaPol_t pol, int ant) const { return &filters[pol][ant]; } 
+      const FFTtools::DigitalFilterSeries * getFilter(pol::pol_t pol, int ant) const { return &filters[pol][ant]; } 
 
     private: 
       TString desc_string; 
@@ -313,7 +312,7 @@ namespace UCorrelator
       int last_bin; 
       int order; 
       double width; 
-      FFTtools::DigitalFilterSeries filters[2][NUM_SEAVEYS]; 
+      FFTtools::DigitalFilterSeries filters[2][k::NUM_HORNS]; 
   }; 
 
 
@@ -332,16 +331,17 @@ namespace UCorrelator
       const char * outputName(unsigned i) const{ return output_names[i].Data(); }
       unsigned outputLength(unsigned i) const; 
       void fillOutput(unsigned i, double * vars) const; 
-      virtual void process(FilteredAnitaEvent * ev); 
-			virtual void processOne(AnalysisWaveform* aw, const RawAnitaHeader * header = 0, int ant = 0, int pol = 0);
-      const FFTtools::SineSubtract* sinsub(AnitaPol::AnitaPol_t pol, int phi) const { return subs[phi][pol] ;} 
+      virtual void process(FilteredEvent * ev); 
+			virtual void processOne(AnalysisWaveform* aw, const RawHeader * header = 0, int ant = 0, int pol = 0);
+      const FFTtools::SineSubtract* sinsub(pol::pol_t pol, int phi) const { return subs[phi][pol] ;} 
       void setInteractive(bool set); 
     private:
-      FFTtools::SineSubtract * subs[NUM_PHI][2]; 
+      FFTtools::SineSubtract * subs[k::NUM_PHI][2]; 
       TString desc_string; 
       std::vector<TString> output_names;
       int nstored_freqs; 
   };
+}
 }
 
 

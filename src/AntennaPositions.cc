@@ -1,5 +1,5 @@
-#include "AntennaPositions.h" 
-#include "AnitaGeomTool.h"
+#include "pueo/AntennaPositions.h" 
+#include "pueo/GeomTool.h"
 #include "assert.h"
 #include "FFTtools.h"
 #include <map>
@@ -10,76 +10,53 @@
 #define RAD2DEG (180/M_PI)
 #endif
 
-#ifndef NUM_ANITAS
-#define NUM_ANITAS 4
-#endif
 
 
 
-static const UCorrelator::AntennaPositions *instances[NUM_ANITAS+1] = {0,0,0,0,0}; 
+static const pueo::UCorrelator::AntennaPositions *instances[pueo::k::NUM_PUEO+1] = {0,0}; 
 
 
-UCorrelator::AntennaPositions::AntennaPositions(int version)
+pueo::UCorrelator::AntennaPositions::AntennaPositions(int version)
 {
   v = version; 
   printf("AntennaPositions(%d)\n",version); 
 
-#ifdef MULTIVERSION_ANITA_ENABLED 
-        AnitaGeomTool * geom = AnitaGeomTool::Instance(version); 
+#ifdef MULTIVERSION_PUEO_ENABLED 
+        const GeomTool * geom = &GeomTool::Instance(version); 
 #else
-        int old_ver = AnitaVersion::get(); 
-        AnitaVersion::set(version); 
-        AnitaGeomTool * geom = AnitaGeomTool::Instance(); 
-        AnitaVersion::set(old_ver); 
+        int old_ver = version::get(); 
+        version::set(version); 
+        const GeomTool * geom = &GeomTool::Instance(); 
+        version::set(old_ver); 
 #endif
 
 
 
-  for (int pol = AnitaPol::kHorizontal; pol <= AnitaPol::kVertical; pol++)
+  for (int pol = pol::kHorizontal; pol <= pol::kVertical; pol++)
   {
-    for (int ant  = 0; ant < NUM_SEAVEYS; ant++) 
+    for (int ant  = 0; ant < k::NUM_HORNS; ant++) 
     {
 //      printf("%d %d\n",pol,ant); 
 //
-      phiAnt[pol][ant] = geom->getAntPhiPositionRelToAftFore(ant,(AnitaPol::AnitaPol_t)pol) * RAD2DEG; 
-      rAnt[pol][ant] = geom->getAntR(ant,(AnitaPol::AnitaPol_t) pol); 
-      zAnt[pol][ant] = geom->getAntZ(ant,(AnitaPol::AnitaPol_t) pol); 
+      phiAnt[pol][ant] = geom->getAntPhiPositionRelToAftFore(ant,(pol::pol_t)pol) * RAD2DEG; 
+      rAnt[pol][ant] = geom->getAntR(ant,(pol::pol_t) pol); 
+      zAnt[pol][ant] = geom->getAntZ(ant,(pol::pol_t) pol); 
     }
   }
 
 }
 
-UCorrelator::AntennaPositions::AntennaPositions(int version, AnitaGeomTool *geom)
-{
-  
-  v = version; 
-  printf("AntennaPositions(%d)\n",version); 
-
-  for (int pol = AnitaPol::kHorizontal; pol <= AnitaPol::kVertical; pol++)
-  {
-    for (int ant  = 0; ant < NUM_SEAVEYS; ant++) 
-    {
-//      printf("%d %d\n",pol,ant); 
-//
-      phiAnt[pol][ant] = geom->getAntPhiPositionRelToAftFore(ant,(AnitaPol::AnitaPol_t)pol) * RAD2DEG; 
-      rAnt[pol][ant] = geom->getAntR(ant,(AnitaPol::AnitaPol_t) pol); 
-      zAnt[pol][ant] = geom->getAntZ(ant,(AnitaPol::AnitaPol_t) pol); 
-    }
-  }
-
-}
-
-int UCorrelator::AntennaPositions::getClosestAntennas(double phi, int N, int * closest, ULong64_t disallowed , AnitaPol::AnitaPol_t pol) const
+int pueo::UCorrelator::AntennaPositions::getClosestAntennas(double phi, int N, int * closest, std::bitset<k::NUM_HORNS> disallowed , pol::pol_t pol) const
 {
 
-  assert(N < NUM_SEAVEYS); 
+  assert(N < k::NUM_HORNS); 
 
-  int pol_ind = pol == AnitaPol::kHorizontal ? 0 : 1; 
+  int pol_ind = pol == pol::kHorizontal ? 0 : 1; 
   std::multimap<double,int> dphis; 
-  for (int i = 0; i < NUM_SEAVEYS; i++) 
+  for (int i = 0; i < k::NUM_HORNS; i++) 
   {
 
-    double dphi = disallowed & (1ul << i) ? 360 : fabs(FFTtools::wrap(phi-phiAnt[pol_ind][i], 360, 0)); 
+    double dphi = disallowed.test(i) ? 360 : fabs(FFTtools::wrap(phi-phiAnt[pol_ind][i], 360, 0)); 
     dphis.insert(std::pair<double,int>(dphi,i)); 
   }
 
@@ -100,16 +77,16 @@ int UCorrelator::AntennaPositions::getClosestAntennas(double phi, int N, int * c
 
 
 
-double UCorrelator::AntennaPositions::distance(int i, int j, AnitaPol::AnitaPol_t pol) const
+double pueo::UCorrelator::AntennaPositions::distance(int i, int j, pol::pol_t pol) const
 {
 
-#ifdef MULTIVERSION_ANITA_ENABLED 
-  AnitaGeomTool * geom = AnitaGeomTool::Instance(v); 
+#ifdef MULTIVERSION_PUEO_ENABLED 
+  const GeomTool * geom = &GeomTool::Instance(v); 
 #else
-  int old_ver = AnitaVersion::get(); 
-  AnitaVersion::set(v); 
-  AnitaGeomTool * geom = AnitaGeomTool::Instance(); 
-  AnitaVersion::set(old_ver); 
+  int old_ver = version::get(); 
+  version::set(v); 
+  const GeomTool * geom = &GeomTool::Instance(); 
+  version::set(old_ver); 
 #endif
 
   double x0,y0,z0; 
@@ -127,9 +104,9 @@ double UCorrelator::AntennaPositions::distance(int i, int j, AnitaPol::AnitaPol_
 
 static TMutex instance_lock; 
 
-const UCorrelator::AntennaPositions * UCorrelator::AntennaPositions::instance(int v)
+const pueo::UCorrelator::AntennaPositions * pueo::UCorrelator::AntennaPositions::instance(int v)
 { 
-  if (!v) v = AnitaVersion::get(); 
+  if (!v) v = version::get(); 
 
   const AntennaPositions * tmp = instances[v]; 
   __asm__ __volatile__ ("" ::: "memory"); //memory fence! 
@@ -151,27 +128,3 @@ const UCorrelator::AntennaPositions * UCorrelator::AntennaPositions::instance(in
 
 }
      
-const UCorrelator::AntennaPositions * UCorrelator::AntennaPositions::instance(int v, AnitaGeomTool *geom)
-{
-  
-  if (!v) v = AnitaVersion::get(); 
-
-  const AntennaPositions * tmp = instances[v]; 
-  __asm__ __volatile__ ("" ::: "memory"); //memory fence! 
-  if (!tmp) 
-  {
-    instance_lock.Lock(); 
-    tmp = instances[v]; 
-    if (!tmp) 
-    {
-      tmp = new AntennaPositions(v, geom); 
-      __asm__ __volatile__ ("" ::: "memory");
-      instances[v] = tmp; 
-    }
-    instance_lock.UnLock(); 
-  }
-
-  return instances[v];
-
-
-}

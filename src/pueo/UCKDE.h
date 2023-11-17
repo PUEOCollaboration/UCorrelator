@@ -1,5 +1,5 @@
-#ifndef UCKDE_H_
-#define UCKDE_H_
+#ifndef PUEO_UCKDE_H_
+#define PUEO_UCKDE_H_
 #include "TF2.h" 
 #include "TH2.h" 
 #include <vector> 
@@ -9,6 +9,8 @@
  *
  **/ 
 
+namespace pueo 
+{
 namespace UCorrelator
 {
   class KDE2D 
@@ -65,6 +67,7 @@ namespace UCorrelator
 
 
 
+}
 }
 
 #endif

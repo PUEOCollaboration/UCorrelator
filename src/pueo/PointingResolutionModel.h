@@ -1,11 +1,13 @@
 #ifndef UCORRELATOR_RESOLUTION_MODEL_H
 #define UCORRELATOR_RESOLUTION_MODEL_H
 
-#include "AnitaEventSummary.h"
+#include "pueo/EventSummary.h"
 #include "TF1.h" 
+
 class TRandom; 
 class TProfile; 
 
+namespace pueo {
 namespace UCorrelator
 {
 
@@ -45,7 +47,7 @@ namespace UCorrelator
   class PointingResolutionModel 
   {
     public: 
-      virtual PointingResolution *  computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution * p = 0) const = 0; 
+      virtual PointingResolution *  computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution * p = 0) const = 0; 
       virtual ~PointingResolutionModel() { ; } 
       ClassDef(PointingResolutionModel,1); 
   }; 
@@ -72,7 +74,7 @@ namespace UCorrelator
     public: 
      PointingResolutionModelPlusHeadingError() { ; }
      PointingResolutionModelPlusHeadingError(int nsecs, const PointingResolutionModel * other); 
-     virtual PointingResolution * computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution *p) const; 
+     virtual PointingResolution * computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution *p) const; 
     private: 
      mutable HeadingErrorEstimator h; 
      const PointingResolutionModel *p; 
@@ -88,7 +90,7 @@ namespace UCorrelator
      : f_th(f_dtheta), f_ph(f_dphi), deconv(use_deconvolved), cos_theta_scale(scale_by_cos_theta)  {; } 
        ; 
 
-     virtual PointingResolution * computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution *p) const; 
+     virtual PointingResolution * computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution *p) const; 
 
     private: 
      TF1 f_th; 
@@ -107,7 +109,7 @@ namespace UCorrelator
         : dphi(dphi), dtheta(dtheta) { rho = 0; }
 
 
-      virtual PointingResolution * computePointingResolution(const AnitaEventSummary * sum, AnitaPol::AnitaPol_t pol, int peak, PointingResolution *p) const
+      virtual PointingResolution * computePointingResolution(const EventSummary * sum, pol::pol_t pol, int peak, PointingResolution *p) const
       {
         new (p) PointingResolution(sum->peak[pol][peak].phi, sum->peak[pol][peak].theta, dphi,dtheta,rho); 
         return p; 
@@ -119,6 +121,7 @@ namespace UCorrelator
 
   }; 
 
+}
 }
 
 

@@ -1,8 +1,8 @@
-#include "SpectrumParameters.h" 
+#include "pueo/SpectrumParameters.h" 
 #include "TGraph.h" 
 #include "TLinearFitter.h"
 #include "TMutex.h"
-#include "AnalysisConfig.h"
+#include "pueo/AnalysisConfig.h"
 #include <cfloat>
 #include "TMath.h"
 #ifdef UCORRELATOR_OPENMP
@@ -42,8 +42,8 @@ void setupFitters()
   }
 }
 
-void UCorrelator::spectrum::fillSpectrumParameters(const TGraph * spectrum, const TGraph * average, 
-                                                   AnitaEventSummary::WaveformInfo * winfo,
+void pueo::UCorrelator::spectrum::fillSpectrumParameters(const TGraph * spectrum, const TGraph * average, 
+                                                   EventSummary::WaveformInfo * winfo,
                                                    const AnalysisConfig * config) 
 {
   TLinearFitter* fitter;
@@ -90,7 +90,7 @@ void UCorrelator::spectrum::fillSpectrumParameters(const TGraph * spectrum, cons
 
   std::vector<bool> used(x.size(), false); 
 
-  for (int i = 0; i < AnitaEventSummary::peaksPerSpectrum; i++) 
+  for (int i = 0; i < EventSummary::peaksPerSpectrum; i++) 
   {
      double max_val = -DBL_MAX; 
      int max_j = -1; 

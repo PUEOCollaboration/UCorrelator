@@ -1,9 +1,9 @@
-#include "PolarityMachine.h"
-#include "TimeDependentAverage.h"
-#include "SystemResponse.h"
-#include "AnitaTemplates.h"
+#include "pueo/PolarityMachine.h"
+#include "pueo/TimeDependentAverage.h"
+#include "pueo/SystemResponse.h"
+#include "pueo/Templates.h"
 
-PolarityMachine::PolarityMachine(int padX)
+pueo::PolarityMachine::PolarityMachine(int padX)
 : wfcomb(15, 3, true, false, 0)
 {
   length = 2048;
@@ -17,9 +17,9 @@ PolarityMachine::PolarityMachine(int padX)
   forwardMinBias = 0;
   previousMinBias = 0;
 
-  d = new AnitaDataset(41);
-  deconv = new AnitaResponse::AllPassDeconvolution;
-  clean_deconv = new AnitaResponse::CLEAN(1000, 0.02, 1, "(1./10.) * pow(x,2) * exp(-x/1.43)", 0,0);
+  d = new Dataset(41);
+  deconv = new AllPassDeconvolution;
+  clean_deconv = new CLEAN(1000, 0.02, 1, "(1./10.) * pow(x,2) * exp(-x/1.43)", 0,0);
   fNotchStr = "";
   inputWaveform = new TGraph;
   crWaveform = new TGraph;
@@ -28,16 +28,15 @@ PolarityMachine::PolarityMachine(int padX)
   for (int i=0; i < numCRTemplates; i++) {
     simulatedCRs[i] = NULL;
   }
-  if(AnitaVersion::get() == 4) fillNotchConfigs();
 
   zeroInternals();
 }
 
-PolarityMachine::~PolarityMachine() {
+pueo::PolarityMachine::~PolarityMachine() {
   zeroInternals();
 }
 
-void PolarityMachine::zeroInternals() {
+void pueo::PolarityMachine::zeroInternals() {
   /* in case you want to delete everything */
   forwardMinBias = 0;
   previousMinBias = 0;
@@ -58,50 +57,30 @@ void PolarityMachine::zeroInternals() {
   return;
 }
 
-void PolarityMachine::setDeconvolutionMethod(AnitaResponse::DeconvolutionMethod* opt)
+void pueo::PolarityMachine::setDeconvolutionMethod(DeconvolutionMethod* opt)
 {
   delete deconv;
   deconv = opt;
 }
 
-void PolarityMachine::setCLEANDeconvolution(AnitaResponse::DeconvolutionMethod* opt)
+void pueo::PolarityMachine::setCLEANDeconvolution(DeconvolutionMethod* opt)
 {
   delete clean_deconv;
   clean_deconv = opt;
 }
 
-void PolarityMachine::fillNotchConfigs()
-{
-  int tempTime;
-  std::string tempStr;
-  char* installDir = getenv("ANITA_UTIL_INSTALL_DIR");
-  std::ifstream inf(Form("%s/share/AnitaAnalysisFramework/responses/TUFFs/index.txt", installDir));
-  while(inf >> tempStr >> tempTime)
-  {
-    payloadTimes.push_back(tempTime);
-    notchConfigs.push_back(tempStr);
-  }
-  inf.close();
-} 
 
-void PolarityMachine::getCRTemplates(int version) {
+void pueo::PolarityMachine::getCRTemplates(int version) {
 
-  char* installDir = getenv("ANITA_UTIL_INSTALL_DIR");
+  char* installDir = getenv("PUEO_UTIL_INSTALL_DIR");
   TString fname;
   TString CRtemplateName;
   TString CRtemplateName_deconv;
-  if(version == 4)
+  if(version == 1)
   {
-    fname = Form("%s/share/AnitaAnalysisFramework/templates/crTmpltsA4_%s.root", installDir, fNotchStr.c_str());
-    CRtemplateName = Form("%s/share/AnitaAnalysisFramework/templates/averageA4CR_%s.txt", installDir, fNotchStr.c_str());
-    CRtemplateName_deconv = Form("%s/share/AnitaAnalysisFramework/templates/deconvolvedCRA4average.txt", installDir);
-  }
-
-  else
-  {
-    fname = Form("%s/share/AnitaAnalysisFramework/templates/crTmpltsA3.root", installDir);
-    CRtemplateName = Form("%s/share/AnitaAnalysisFramework/templates/averageA3CR.txt", installDir);
-    CRtemplateName_deconv = Form("%s/share/AnitaAnalysisFramework/templates/deconvolvedCRA3average.txt", installDir);
+    fname = Form("%s/share/PueoAnalysisFramework/templates/crTmpltsP1_%s.root", installDir, fNotchStr.c_str());
+    CRtemplateName = Form("%s/share/PueoAnalysisFramework/templates/averageP1CR_%s.txt", installDir, fNotchStr.c_str());
+    CRtemplateName_deconv = Form("%s/share/PueoAnalysisFramework/templates/deconvolvedP1average.txt", installDir);
   }
 
   TFile *inFile = TFile::Open(fname.Data());
@@ -114,7 +93,7 @@ void PolarityMachine::getCRTemplates(int version) {
     name << "disp" << wave;
     TGraph* guncut = (TGraph*)inFile->Get(name.str().c_str());
     TGraph* g = WindowingTools::windowCut(guncut, length);
-    g = FFTtools::normalizeWaveform(g);
+    g = FFTtoolsAnnex::normalizeWaveform(g);
     delete guncut;
     if(version == 4) //the tuffs cause a flip of 180 vs the a3 stuff
     {
@@ -126,19 +105,19 @@ void PolarityMachine::getCRTemplates(int version) {
     delete g;
   }
   TGraph* gCR = new TGraph(CRtemplateName.Data());
-  gCR = FFTtools::normalizeWaveform(gCR);
+  gCR = FFTtoolsAnnex::normalizeWaveform(gCR);
   CRtemplate = new AnalysisWaveform(gCR->GetN(), gCR->GetX(), gCR->GetY(), dT);
   CRtemplate->padFreq(padFactor);
 
   TGraph* gCR_deconv = new TGraph(CRtemplateName_deconv.Data());
-  gCR_deconv = FFTtools::normalizeWaveform(gCR_deconv);
+  gCR_deconv = FFTtoolsAnnex::normalizeWaveform(gCR_deconv);
   CRtemplate_deconv = new AnalysisWaveform(gCR_deconv->GetN(), gCR_deconv->GetX(), gCR_deconv->GetY(), dT);
   CRtemplate_deconv->padFreq(padFactor);
   int temp = -1;
   //gCR_deconv = WindowingTools::windowWave(gCR_deconv, temp, windowStart, windowStart, windowEnd, windowEnd);
   delete gCR_deconv;
   gCR_deconv = windowWaveform(CRtemplate_deconv, windowSizeNs);
-  gCR_deconv = FFTtools::normalizeWaveform(gCR_deconv);
+  gCR_deconv = FFTtoolsAnnex::normalizeWaveform(gCR_deconv);
   CRtemplate_deconv_windowed = new AnalysisWaveform(gCR_deconv->GetN(), gCR_deconv->GetX(), gCR_deconv->GetY(), dT);
 
   delete gCR;
@@ -149,15 +128,12 @@ void PolarityMachine::getCRTemplates(int version) {
   return;
 }
 
-void PolarityMachine::getImpulseResponseTemplate(int version) {
+void pueo::PolarityMachine::getImpulseResponseTemplate(int version) {
 
-  char* installDir = getenv("ANITA_UTIL_INSTALL_DIR");
+  char* installDir = getenv("PUEO_UTIL_INSTALL_DIR");
   TString name;
-  if(version == 4)
-  {
-    name = Form("%s/share/AnitaAnalysisFramework/responses/TUFFs/averages/%s.imp", installDir, fNotchStr.c_str());
-  }
-  else name = Form("%s/share/AnitaAnalysisFramework/responses/SingleBRotter/all.imp", installDir);
+  name = Form("%s/share/PueoAnalysisFramework/responses/averages/%s.imp", installDir, fNotchStr.c_str());
+
   TGraph *gunpad = new TGraph(name.Data());
   TGraph *g = FFTtools::padWaveToLength(gunpad, length);
 
@@ -168,7 +144,7 @@ void PolarityMachine::getImpulseResponseTemplate(int version) {
 }
 
 
-void PolarityMachine::loadTemplates(unsigned int eventTime, int version) {
+void pueo::PolarityMachine::loadTemplates(unsigned int eventTime, int version) {
 
   std::string tempStr = "";
   int i = 0;
@@ -194,7 +170,7 @@ void PolarityMachine::loadTemplates(unsigned int eventTime, int version) {
   return;
 }
 
-TH2D* PolarityMachine::generatePolarityMeasurements(int N, int eventNumber, double cr_phi, double cr_theta, double cr_snr, int pol, int metric,  const char * outhistoname,  std::vector<int> whichTemplates)
+TH2D* pueo::PolarityMachine::generatePolarityMeasurements(int N, int eventNumber, double cr_phi, double cr_theta, double cr_snr, int pol, int metric,  const char * outhistoname,  std::vector<int> whichTemplates)
 {
   d->getEvent(eventNumber, true);
   //make sure templates are loaded
@@ -236,7 +212,7 @@ TH2D* PolarityMachine::generatePolarityMeasurements(int N, int eventNumber, doub
   return h;
 }
 
-AnalysisWaveform* PolarityMachine::generateNoisyWaveform(AnalysisWaveform* templateWf, AnalysisWaveform* noiseWf, double snr, TRandom3* tr)
+pueo::AnalysisWaveform* pueo::PolarityMachine::generateNoisyWaveform(AnalysisWaveform* templateWf, AnalysisWaveform* noiseWf, double snr, TRandom3* tr)
 {
   double new_snr = tr->Gaus(snr, 1./snr);
   AnalysisWaveform* outWf = new AnalysisWaveform(templateWf->even()->GetN(), templateWf->even()->GetY(), templateWf->deltaT(), 0);
@@ -247,7 +223,7 @@ AnalysisWaveform* PolarityMachine::generateNoisyWaveform(AnalysisWaveform* templ
   return outWf;
 }
 
-double PolarityMachine::testPolarity(int metric, AnalysisWaveform* wf, bool deconvolved)
+double pueo::PolarityMachine::testPolarity(int metric, AnalysisWaveform* wf, bool deconvolved)
 {
   if(wf->deltaT() != dT) 
   {
@@ -345,7 +321,7 @@ double PolarityMachine::testPolarity(int metric, AnalysisWaveform* wf, bool deco
   return -1;
 }
 
-double PolarityMachine::calculateCLEANPolarity(TGraph* gwf)
+double pueo::PolarityMachine::calculateCLEANPolarity(TGraph* gwf)
 {
   int max_ind = 0; 
   int min_ind = 0;
@@ -381,7 +357,7 @@ double PolarityMachine::calculateCLEANPolarity(TGraph* gwf)
   return retval;
 }
 
-double PolarityMachine::fourierPhasePolarity(int window_type, AnalysisWaveform* wf)
+double pueo::PolarityMachine::fourierPhasePolarity(int window_type, AnalysisWaveform* wf)
 {
   TGraph* theOut;
   if(window_type == 0) theOut = peterWindow(wf, windowSizeNs, true);
@@ -405,7 +381,7 @@ double PolarityMachine::fourierPhasePolarity(int window_type, AnalysisWaveform* 
   return ret;
 }
 
-AnalysisWaveform* PolarityMachine::makeNoiseWaveformFromMinBias(int eventNumber, double phi, double theta, int pol, int current_N)
+pueo::AnalysisWaveform* pueo::PolarityMachine::makeNoiseWaveformFromMinBias(int eventNumber, double phi, double theta, int pol, int current_N)
 {
   //TODO make the output of this be 2048 points long or 2046 in awf form or change everything else to 1500 points
   d->getEvent(eventNumber, true);
@@ -437,17 +413,17 @@ AnalysisWaveform* PolarityMachine::makeNoiseWaveformFromMinBias(int eventNumber,
   }
   FilterStrategy strat;
 
-  FilteredAnitaEvent fae(d->useful(), &strat, d->gps(), d->header());
-  wfcomb.combine(phi, theta, &fae, AnitaPol::AnitaPol_t(pol), 0, -25, 125);
+  FilteredEvent fae(d->useful(), &strat, d->gps(), d->header());
+  wfcomb.combine(phi, theta, &fae, pol::pol_t(pol), 0, -25, 125);
   TGraph* g = new TGraph(wfcomb.getCoherent()->even()->GetN(), wfcomb.getCoherent()->even()->GetX(), wfcomb.getCoherent()->even()->GetY());
-  g = FFTtools::normalizeWaveform(g);
+  g = FFTtoolsAnnex::normalizeWaveform(g);
   AnalysisWaveform* theOut = new AnalysisWaveform(g->GetN(), g->GetX(), g->GetY(), dT);
   delete g;
 
   return theOut;
 }
 
-TGraph* PolarityMachine::windowWaveform(AnalysisWaveform* wf, double window_size_ns)
+TGraph* pueo::PolarityMachine::windowWaveform(AnalysisWaveform* wf, double window_size_ns)
 {
   double * x = wf->even()->GetY();
   double * xh = wf->hilbertTransform()->even()->GetY();
@@ -519,7 +495,7 @@ TGraph* PolarityMachine::windowWaveform(AnalysisWaveform* wf, double window_size
   return theOut;
 }
 
-TGraph* PolarityMachine::peterWindow(AnalysisWaveform* wf, double window_size_ns, bool roll)
+TGraph* pueo::PolarityMachine::peterWindow(AnalysisWaveform* wf, double window_size_ns, bool roll)
 {
   if(window_size_ns <= 0)
   {
@@ -621,7 +597,7 @@ TGraph* PolarityMachine::peterWindow(AnalysisWaveform* wf, double window_size_ns
   return theOut;
 }
 
-TGraph* PolarityMachine::hilbertWindow(AnalysisWaveform* wf, double window_size_ns, bool roll, bool use_cdf, int how_to_use_cdf)
+TGraph* pueo::PolarityMachine::hilbertWindow(AnalysisWaveform* wf, double window_size_ns, bool roll, bool use_cdf, int how_to_use_cdf)
 {
   if(window_size_ns <= 0)
   {
@@ -758,7 +734,7 @@ TGraph* PolarityMachine::hilbertWindow(AnalysisWaveform* wf, double window_size_
   return theOut;
 }
 
-TH2D* PolarityMachine::runPolaritySimulation(int N, int eventNumber, double cr_phi, double cr_theta, double cr_snr, int pol, int metric, const char* outhistoname)
+TH2D* pueo::PolarityMachine::runPolaritySimulation(int N, int eventNumber, double cr_phi, double cr_theta, double cr_snr, int pol, int metric, const char* outhistoname)
 {
   d->getEvent(eventNumber, true);
   //make sure templates are loaded 
@@ -767,10 +743,10 @@ TH2D* PolarityMachine::runPolaritySimulation(int N, int eventNumber, double cr_p
   TGraph* gCorr = 0;
   std::vector<double> corrs(numCRTemplates);
 
-  FilteredAnitaEvent fae(d->useful(), &strat, d->gps(), d->header());
-  wfcomb.combine(cr_phi, cr_theta, &fae, AnitaPol::AnitaPol_t(pol), 0, -25, 125);
+  FilteredEvent fae(d->useful(), &strat, d->gps(), d->header());
+  wfcomb.combine(cr_phi, cr_theta, &fae, pol::pol_t(pol), 0, -25, 125);
   TGraph* g = new TGraph(wfcomb.getCoherent()->even()->GetN(), wfcomb.getCoherent()->even()->GetX(), wfcomb.getCoherent()->even()->GetY());
-  g = FFTtools::normalizeWaveform(g);
+  g = FFTtoolsAnnex::normalizeWaveform(g);
   AnalysisWaveform* theCR = new AnalysisWaveform(g->GetN(), g->GetX(), g->GetY(), dT);
   delete g;
   TGraph* gg = new TGraph(theCR->even()->GetN(), theCR->even()->GetX(), theCR->even()->GetY());
@@ -812,7 +788,7 @@ TH2D* PolarityMachine::runPolaritySimulation(int N, int eventNumber, double cr_p
   return hOut;
 }
 
-void PolarityMachine::makeSameSize(AnalysisWaveform* wf1, AnalysisWaveform* wf2)
+void pueo::PolarityMachine::makeSameSize(AnalysisWaveform* wf1, AnalysisWaveform* wf2)
 {
   int n_target = (wf2->Neven() > wf1->Neven()) ? wf1->Neven() : wf2->Neven();
   if(wf1->Neven() != n_target)

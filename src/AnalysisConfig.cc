@@ -1,8 +1,8 @@
-#include "AnalysisConfig.h" 
-#include "SystemResponse.h" 
+#include "pueo/AnalysisConfig.h" 
+#include "pueo/SystemResponse.h" 
 #include "TFile.h" 
 #include "TH2.h" 
-#include "AnitaVersion.h"
+#include "pueo/Version.h"
 
 static const char * peakfinders[] = {"Abby","Bicubic","Gaussian","QuadraticFit9","QuadraticFit16","QuadraticFit25", "Histogram" }; 
 static const char * responses[] = {"None","SingleBRotter","IndividualBRotter","HarmSignalOnly", "TUFFs", "A4noNotches", "A4ImpulseTUFFs", "A4OldImpulseTUFFs"};
@@ -16,7 +16,7 @@ static const char * normalizations[] = {"None", "Magnitude", "Overlap magnitude"
 #include "libconfig.h++"
 #define LOOKUP(X) cfg.lookupValue(#X,X) 
 
-void lookupEnum(libconfig::Config * cfg, const char * key, int * val, int N, const char ** allowed) 
+static void lookupEnum(libconfig::Config * cfg, const char * key, int * val, int N, const char ** allowed) 
 {
   if (!cfg->exists(key)) return; 
 
@@ -44,7 +44,7 @@ void lookupEnum(libconfig::Config * cfg, const char * key, int * val, int N, con
 }
 
 
-void UCorrelator::AnalysisConfig::loadFromFile(const char * config_file) 
+void pueo::UCorrelator::AnalysisConfig::loadFromFile(const char * config_file) 
 {
 
   libconfig::Config cfg; 
@@ -112,7 +112,7 @@ void UCorrelator::AnalysisConfig::loadFromFile(const char * config_file)
 }
 
 #else
-void UCorrelator::AnalysisConfig::loadFromFile(const char * config_file) 
+void pueo::UCorrelator::AnalysisConfig::loadFromFile(const char * config_file) 
 {
 
   fprintf(stderr, "Not compiled with support for reading config files. You need libconfig for that.\n"); 
@@ -126,10 +126,10 @@ const int wais_vpol_time_offset[5] = {0,0,0,-99757,1000};
 const int siple_hpol_time_offset = -41;
 const int siple_vpol_time_offset = +328;
 
-UCorrelator::AnalysisConfig::AnalysisConfig(const char * config) 
+pueo::UCorrelator::AnalysisConfig::AnalysisConfig(const char * config) 
   : 
-    wais_hpol(wais_hpol_time_offset[AnitaVersion::get()], 800e3, 1e3), 
-    wais_vpol(wais_vpol_time_offset[AnitaVersion::get()], 800e3, 1e3), 
+    wais_hpol(wais_hpol_time_offset[version::get()], 800e3, 1e3), 
+    wais_vpol(wais_vpol_time_offset[version::get()], 800e3, 1e3), 
     siple_hpol(siple_hpol_time_offset, 800e3, 1e3), 
     siple_vpol(siple_vpol_time_offset, 800e3, 1e3)
 {
@@ -152,8 +152,8 @@ UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
 
   saturation_threshold = 1500; 
 
-  start_pol = AnitaPol::kHorizontal; 
-  end_pol = AnitaPol::kVertical; 
+  start_pol = pol::kHorizontal; 
+  end_pol = pol::kVertical; 
 
   peak_isolation_requirement = 10; 
 
@@ -184,7 +184,7 @@ UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
 
   if (config) loadFromFile(config);
 
-  deconvolution_method = &AnitaResponse::kDefaultDeconvolution; 
+  deconvolution_method = &pueo::kDefaultDeconvolution; 
   
   the_ldb_hist = 0; 
 
@@ -216,12 +216,12 @@ UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
 }
 
 static int nag = 0; 
-TH2 * UCorrelator::AnalysisConfig::ldb_hist() const 
+TH2 * pueo::UCorrelator::AnalysisConfig::ldb_hist() const 
 {
   if (the_ldb_hist) return the_ldb_hist; 
 
   TString fname; 
-  fname.Form("%s/share/UCorrelator/ldbSelection.root", getenv("ANITA_UTIL_INSTALL_DIR")); 
+  fname.Form("%s/share/UCorrelator/ldbSelection.root", getenv("PUEO_UTIL_INSTALL_DIR")); 
   TFile f(fname); 
 
   if (!f.IsOpen())
@@ -240,12 +240,12 @@ TH2 * UCorrelator::AnalysisConfig::ldb_hist() const
 }
 
 
-const char * UCorrelator::AnalysisConfig::getPeakFindingString(FinePeakFindingOption_t opt) 
+const char * pueo::UCorrelator::AnalysisConfig::getPeakFindingString(FinePeakFindingOption_t opt) 
 {
   return peakfinders[opt]; 
 }
 
-const char * UCorrelator::AnalysisConfig::getResponseString(ResponseOption_t opt) 
+const char * pueo::UCorrelator::AnalysisConfig::getResponseString(ResponseOption_t opt) 
 {
 
   return opt == ResponseCustomString ? 0 :  responses[opt]; 
@@ -253,14 +253,14 @@ const char * UCorrelator::AnalysisConfig::getResponseString(ResponseOption_t opt
 
 //BinnedAnalysis addition - JCF 9/27/2021
 // added sammy ------------------------------------------------------------------
-const char * UCorrelator::AnalysisConfig::getNormalizationString(NormalizationOption_t opt) 
+const char * pueo::UCorrelator::AnalysisConfig::getNormalizationString(NormalizationOption_t opt) 
 {
   return normalizations[opt]; 
 }
 // ------------------------------------------------------------------------------
 //End BinnedAnalysis addition.
 
-UCorrelator::AnalysisConfig::~AnalysisConfig()
+pueo::UCorrelator::AnalysisConfig::~AnalysisConfig()
 {
   if (the_ldb_hist) delete the_ldb_hist; 
 }

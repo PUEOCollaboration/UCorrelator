@@ -1,123 +1,123 @@
-#ifndef UCORRELATOR_CORRELATOR_H
-#define UCORRELATOR_CORRELATOR_H
+#ifndef PUEO_UCORRELATOR_CORRELATOR_H
+#define PUEO_UCORRELATOR_CORRELATOR_H
 
 
-#include "AnitaConventions.h"
+#include "pueo/Conventions.h"
 #include "TH2.h"
-#include "AnalysisConfig.h"
+#include "pueo/AnalysisConfig.h"
+#include <bitset>
 
-class FilteredAnitaEvent; 
-class AnalysisWaveform; 
-
-#define NANTENNAS NUM_SEAVEYS
-
-namespace UCorrelator
+namespace pueo 
 {
+  class FilteredEvent; 
+  class AnalysisWaveform; 
 
-  class TrigCache; 
 
-  //This is just to hide the OpenMP stuff from cling
-  class CorrelatorLocks; 
-
-  /** This creates the inteferometric map for an ANITA event */ 
-  class Correlator
+  namespace UCorrelator
   {
-    public:
-      /** Create a correlator with the following options for the rough map */ 
-      Correlator(int nphi, double phimin, double phimax, int ntheta, double theta_lowest, double theta_highest, bool use_bin_center = false, bool scale_by_cos_theta = false, double baseline_weight = 0, double gain_sigma = 0); 
 
-      /** Compute the rough correlation map for the event and pol */ 
-      void compute(const FilteredAnitaEvent * event, AnitaPol::AnitaPol_t pol); 
+    class TrigCache; 
 
-      /** Get the rough correlation map */ 
-      const TH2D * getHist() const { return hist; } 
- 
-      /** Get the rough correlation map normalization */ 
-      const TH2D * getNorm() const { return norm; } 
-      
+    //This is just to hide the OpenMP stuff from cling
+    class CorrelatorLocks; 
 
-      /** Compute a zoomed in map around phi and theta. nphi,dphi,ntheta,dtheta. If nant is non-zero, only the nearest nant antennas are used. You can use useme to avoid allocating a new TH2.  */ 
-      TH2D* computeZoomed(double phi, double theta, int nphi, double dphi,  int ntheta, double dtheta, int nant = 0, TH2D * useme = 0); 
+    /** This creates the inteferometric map for an ANITA event */ 
+    class Correlator
+    {
+      public:
+        /** Create a correlator with the following options for the rough map */ 
+        Correlator(int nphi, double phimin, double phimax, int ntheta, double theta_lowest, double theta_highest, bool use_bin_center = false, bool scale_by_cos_theta = false, double baseline_weight = 0, double gain_sigma = 0); 
 
-      /** Disable the antennas given by the bitmap */ 
-      void setDisallowedAntennas(ULong64_t disallowed) { disallowed_antennas = disallowed; } 
+        /** Compute the rough correlation map for the event and pol */ 
+        void compute(const FilteredEvent * event, pol::pol_t pol); 
 
-      /** Enable only the antennas given by the bitmap */ 
-      void setAllowedAntennas(ULong64_t allowed) { disallowed_antennas = ~allowed; } 
+        /** Get the rough correlation map */ 
+        const TH2D * getHist() const { return hist; } 
+   
+        /** Get the rough correlation map normalization */ 
+        const TH2D * getNorm() const { return norm; } 
+        
 
-      /** An antenna only contributes to an angle if it's within max_phi  of it */
-      void setMaxAntennaMaxPhiDistance(double max_ant_phi) { max_phi = max_ant_phi;  max_phi2 = max_phi * max_phi; } 
+        /** Compute a zoomed in map around phi and theta. nphi,dphi,ntheta,dtheta. If nant is non-zero, only the nearest nant antennas are used. You can use useme to avoid allocating a new TH2.  */ 
+        TH2D* computeZoomed(double phi, double theta, int nphi, double dphi,  int ntheta, double dtheta, int nant = 0, TH2D * useme = 0); 
 
-      /** Use the group delay in computing the delay */ 
-      void setGroupDelayFlag(bool flag) { groupDelayFlag = flag; } 
+        /** Disable the antennas given by the bitmap */ 
+        void setDisallowedAntennas(std::bitset<k::NUM_HORNS> disallowed) { disallowed_antennas = disallowed; } 
 
+        /** Enable only the antennas given by the bitmap */ 
+        void setAllowedAntennas(std::bitset<k::NUM_HORNS> allowed) { disallowed_antennas = ~allowed; } 
 
-      /** Get the correlation between two antennas */
-      const AnalysisWaveform * getCorrelationGraph(int ant1, int ant2) { return getCorrelation(ant1,ant2); }
+        /** An antenna only contributes to an angle if it's within max_phi  of it */
+        void setMaxAntennaMaxPhiDistance(double max_ant_phi) { max_phi = max_ant_phi;  max_phi2 = max_phi * max_phi; } 
 
-      /** Set the supersampling factor */ 
-      void setPadFactor(int pad) { pad_factor = pad; } 
-
-      //Added for BinnedAnalysis - JCF 9/27/2021
-      /** Disable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
-      void disallowAntennas(uint64_t disallowed) { disallowed_antennas |= disallowed; }
-
-      /** Enable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
-      void allowAntennas(uint64_t allowed) { disallowed_antennas &= ~allowed; }
-
-      /** Set the normalization      added sammy */
-      void setNormalization(AnalysisConfig::NormalizationOption_t n) { normalization_option = n; }
-      const char * getNormalizationString() {return AnalysisConfig::getNormalizationString(normalization_option);}
-      //----------------------------------------------------------------------
-
-      //End BinnedAnalysis Additions
-
-      /** Debugging method to dump out some info to a file */ 
-      void dumpDeltaTs(const char * file) const; 
-      virtual ~Correlator(); 
-
-    private: 
-      AnalysisWaveform* padded_waveforms[NANTENNAS]; 
-      AnalysisWaveform* correlations[NANTENNAS][NANTENNAS]; 
-
-      TH2D *hist; 
-      TH2D *norm; 
-
-      std::vector<TH2D*> hists; 
-      std::vector<TH2D*> norms; 
-
-#ifndef NUM_ANITAS
-#define NUM_ANITAS 4
-#endif
-      TrigCache * trigcache[NUM_ANITAS+1]; 
-      double rms[NANTENNAS]; 
-
-      double max_phi, max_phi2;
-      ULong64_t disallowed_antennas;
-      int pad_factor;
-      const FilteredAnitaEvent * ev; 
-      AnitaPol::AnitaPol_t pol; 
-      bool groupDelayFlag; 
-      bool use_bin_center; 
-      bool scale_cos_theta; 
-      double baselineWeight;
-      double gainSigma; 
-
-      AnalysisWaveform * getCorrelation(int ant1, int ant2); 
-      void doAntennas(int ant1, int ant2, TH2D ** hist, TH2D ** norm, const UCorrelator::TrigCache * tc, const double * center_point  = 0); 
-      void reset(); 
-
-      CorrelatorLocks * locks; 
-
-      //Added for BinnedAnalysis - JCF 9/27/2021
-      // added sammy -----------------------------------------------
-      AnalysisConfig::NormalizationOption_t normalization_option;
-      //------------------------------------------------------------
-      //End BinnedAnalysis addition.
-  }; 
+        /** Use the group delay in computing the delay */ 
+        void setGroupDelayFlag(bool flag) { groupDelayFlag = flag; } 
 
 
+        /** Get the correlation between two antennas */
+        const AnalysisWaveform * getCorrelationGraph(int ant1, int ant2) { return getCorrelation(ant1,ant2); }
 
+        /** Set the supersampling factor */ 
+        void setPadFactor(int pad) { pad_factor = pad; } 
+
+        //Added for BinnedAnalysis - JCF 9/27/2021
+        /** Disable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
+        void disallowAntennas(std::bitset<k::NUM_HORNS> disallowed) { disallowed_antennas |= disallowed; }
+
+        /** Enable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
+        void allowAntennas(std::bitset<k::NUM_HORNS> allowed) { disallowed_antennas &= ~allowed; }
+
+        /** Set the normalization      added sammy */
+        void setNormalization(AnalysisConfig::NormalizationOption_t n) { normalization_option = n; }
+        const char * getNormalizationString() {return AnalysisConfig::getNormalizationString(normalization_option);}
+        //----------------------------------------------------------------------
+
+        //End BinnedAnalysis Additions
+
+        /** Debugging method to dump out some info to a file */ 
+        void dumpDeltaTs(const char * file) const; 
+        virtual ~Correlator(); 
+
+      private: 
+        AnalysisWaveform* padded_waveforms[k::NUM_HORNS]; 
+        AnalysisWaveform* correlations[k::NUM_HORNS][k::NUM_HORNS]; 
+
+        TH2D *hist; 
+        TH2D *norm; 
+
+        std::vector<TH2D*> hists; 
+        std::vector<TH2D*> norms; 
+
+        TrigCache * trigcache[k::NUM_PUEO+1]; 
+        double rms[k::NUM_HORNS]; 
+
+        double max_phi, max_phi2;
+        std::bitset<k::NUM_HORNS> disallowed_antennas;
+        int pad_factor;
+        const FilteredEvent * ev; 
+        pol::pol_t pol; 
+        bool groupDelayFlag; 
+        bool use_bin_center; 
+        bool scale_cos_theta; 
+        double baselineWeight;
+        double gainSigma; 
+
+        AnalysisWaveform * getCorrelation(int ant1, int ant2); 
+        void doAntennas(int ant1, int ant2, TH2D ** hist, TH2D ** norm, const UCorrelator::TrigCache * tc, const double * center_point  = 0); 
+        void reset(); 
+
+        CorrelatorLocks * locks; 
+
+        //Added for BinnedAnalysis - JCF 9/27/2021
+        // added sammy -----------------------------------------------
+        AnalysisConfig::NormalizationOption_t normalization_option;
+        //------------------------------------------------------------
+        //End BinnedAnalysis addition.
+    }; 
+
+
+
+  }
 }
 
 

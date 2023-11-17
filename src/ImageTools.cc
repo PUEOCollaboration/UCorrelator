@@ -1,6 +1,6 @@
 #include "TProfile2D.h"
 #include "TH3.h" 
-#include "UCImageTools.h" 
+#include "pueo/UCImageTools.h" 
 #include "TString.h" 
 #include <algorithm>
 #include <set>
@@ -29,7 +29,7 @@ static TH1* makeTH1(char type, const char * name, const char * title, int nbins,
 
 
 
-TProfile2D *UCorrelator::TH2toTProfile2D(TH2* inTH2) {
+TProfile2D *pueo::UCorrelator::TH2toTProfile2D(TH2* inTH2) {
 
   int nBinX = inTH2->GetNbinsX();
   int nBinY = inTH2->GetNbinsY();
@@ -43,7 +43,7 @@ TProfile2D *UCorrelator::TH2toTProfile2D(TH2* inTH2) {
 
 }
 
-void UCorrelator::fillTProfile2DWithTH2(TProfile2D *prof, TH2* hist) {
+void pueo::UCorrelator::fillTProfile2DWithTH2(TProfile2D *prof, TH2* hist) {
 
   int nBinX = hist->GetNbinsX();
   int nBinY = hist->GetNbinsY();
@@ -61,7 +61,7 @@ void UCorrelator::fillTProfile2DWithTH2(TProfile2D *prof, TH2* hist) {
 
 
 
-TH2* UCorrelator::rotateHistogram(const TH2* inHist, double rotate) {
+TH2* pueo::UCorrelator::rotateHistogram(const TH2* inHist, double rotate) {
   
   //get all the info about the graph
   int nBinX = inHist->GetNbinsX();
@@ -98,7 +98,7 @@ TH2* UCorrelator::rotateHistogram(const TH2* inHist, double rotate) {
 
 
 
-double UCorrelator::getZRMS(const TH2* hist, const int * lims) {
+double pueo::UCorrelator::getZRMS(const TH2* hist, const int * lims) {
 
   int numBinsX = hist -> GetNbinsX();
   int numBinsY = hist -> GetNbinsY();
@@ -145,13 +145,13 @@ static const TAxis * getAxis(const TH2* H, int axis)
     case 2: 
       return H->GetYaxis(); 
     default:
-      fprintf(stderr,"UCorrelator::image: axis must be 1 (x) or 2 (y)\n"); 
+      fprintf(stderr,"pueo::UCorrelator::image: axis must be 1 (x) or 2 (y)\n"); 
       return 0; 
   }
 }
 
 
-TH1* UCorrelator::image::getPctileProjection(const TH2 * H, int axis, double pct, bool ignoreEmpty, const TH1 * norm) 
+TH1* pueo::UCorrelator::image::getPctileProjection(const TH2 * H, int axis, double pct, bool ignoreEmpty, const TH1 * norm) 
 {
   TString name; 
   TString title; 
@@ -218,7 +218,7 @@ static double bicubicFunction(double x, double * params)
 }
 
 
-double UCorrelator::image::interpolate(const TH2 *h, double x, double y, InterpolationType type, InterpolationEdgeBehavior flags_x, InterpolationEdgeBehavior flags_y, bool centers)
+double pueo::UCorrelator::image::interpolate(const TH2 *h, double x, double y, InterpolationType type, InterpolationEdgeBehavior flags_x, InterpolationEdgeBehavior flags_y, bool centers)
 {
 
   if (type == NEAREST) 
@@ -373,7 +373,7 @@ double UCorrelator::image::interpolate(const TH2 *h, double x, double y, Interpo
 
 }
 
-TH1 * UCorrelator::image::makePctileHist(const TH1 * h, const char * name , bool invert, int npctilebins, bool integral) 
+TH1 * pueo::UCorrelator::image::makePctileHist(const TH1 * h, const char * name , bool invert, int npctilebins, bool integral) 
 {
 #if ROOT_VERSION_CODE < ROOT_VERSION(6,4,0)
   fprintf(stderr,"makePctileHist requires at least ROOT 6.04\n"); 

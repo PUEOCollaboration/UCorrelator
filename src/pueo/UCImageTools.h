@@ -1,5 +1,5 @@
-#ifndef UCORRELATOR_IMAGE_TOOLS_H
-#define UCORRELATOR_IMAGE_TOOLS_H
+#ifndef PUEO_UCORRELATOR_IMAGE_TOOLS_H
+#define PUEO_UCORRELATOR_IMAGE_TOOLS_H
 
 /** Image tools for working with TH2*'s
  *
@@ -13,6 +13,8 @@ class TH1;
 class TH2; 
 class TProfile2D;
 
+namespace pueo 
+{
 namespace UCorrelator
 {
 
@@ -96,6 +98,7 @@ namespace UCorrelator
     double interpolate(const TH2 * h, double x, double y, InterpolationType type = BILINEAR, InterpolationEdgeBehavior edge_x= PERIODIC, InterpolationEdgeBehavior edge_y = OVERFLOW_BIN, bool use_bin_centers = true); 
 
   }; 
-}; 
+} 
+}
 
 #endif

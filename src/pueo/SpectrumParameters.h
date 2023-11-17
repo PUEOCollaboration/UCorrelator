@@ -1,19 +1,19 @@
-#ifndef _UCORRELATOR_SPECTRUM_PARAMETERS_H
-#define _UCORRELATOR_SPECTRUM_PARAMETERS_H
+#ifndef PUEO__UCORRELATOR_SPECTRUM_PARAMETERS_H
+#define PUEO__UCORRELATOR_SPECTRUM_PARAMETERS_H
 
 class TGraph; 
 
-#include "AnitaEventSummary.h" 
+#include "pueo/EventSummary.h" 
 
+namespace pueo {
 namespace UCorrelator
 {
   class AnalysisConfig; 
   namespace spectrum
   {
-    void fillSpectrumParameters( const TGraph * spectrum, const TGraph * baseline, AnitaEventSummary::WaveformInfo * winfo, const AnalysisConfig * config); 
-
-
+    void fillSpectrumParameters( const TGraph * spectrum, const TGraph * baseline, EventSummary::WaveformInfo * winfo, const AnalysisConfig * config); 
   }
+}
 }
 
 

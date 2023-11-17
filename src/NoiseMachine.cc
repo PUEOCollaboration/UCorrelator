@@ -1,4 +1,4 @@
-#include "AnitaNoiseMachine.h"
+#include "pueo/NoiseMachine.h"
 
 
 //---------------------------------------------------------------------------------------------------------
@@ -7,20 +7,20 @@
  *
  * Default constructor for ROOT
  */
-AnitaNoiseMachine::AnitaNoiseMachine(const int length)
+pueo::UCorrelator::NoiseMachine::NoiseMachine(const int length)
     : fifoLength(length), quiet(true)
 {
   
   if (fifoLength < 2) {
-    std::cout << "Warning from constructor of AnitaNoiseMachine(int length): ";
+    std::cout << "Warning from constructor of pueo::UCorrelator::NoiseMachine(int length): ";
     std::cout << "You picked an average less than 2, this is a bad idea, and values will likely be wrong" << std::endl;
   }
 
-  rmsFifo = (double*)malloc(NUM_PHI*NUM_ANTENNA_RINGS*NUM_POLS*fifoLength*sizeof(double));
-  rollingMapAvg = (double*)malloc(NUM_POLS*nPhi*nTheta*sizeof(double));
+  rmsFifo = (double*)malloc(k::NUM_HORNS*k::NUM_POLS*fifoLength*sizeof(double));
+  rollingMapAvg = (double*)malloc(k::NUM_POLS*nPhi*nTheta*sizeof(double));
 
 
-  for (int poli=0; poli<NUM_POLS; poli++) {
+  for (int poli=0; poli<k::NUM_POLS; poli++) {
     mapFifo[poli] = (TH2**)malloc(fifoLength*sizeof(TH2*));
     for (int fifoPos=0; fifoPos<fifoLength; fifoPos++) {
       mapFifo[poli][fifoPos] = NULL;
@@ -31,7 +31,7 @@ AnitaNoiseMachine::AnitaNoiseMachine(const int length)
 }
 
 //Resetting to initial state
-void AnitaNoiseMachine::zeroInternals() {
+void pueo::UCorrelator::NoiseMachine::zeroInternals() {
 
   fJustInitialized = true;
 
@@ -46,11 +46,11 @@ void AnitaNoiseMachine::zeroInternals() {
   //reset rms fifo
   rmsFifoPos = 0;
   rmsFifoFillFlag = false;
-  memset(rmsFifo,0,NUM_PHI*NUM_ANTENNA_RINGS*NUM_POLS*fifoLength*sizeof(double)); 
-  memset(rmsAvg,0,NUM_PHI*NUM_ANTENNA_RINGS*NUM_POLS*sizeof(double));
+  memset(rmsFifo,0,k::NUM_HORNS*k::NUM_POLS*fifoLength*sizeof(double)); 
+  memset(rmsAvg,0,k::NUM_HORNS*k::NUM_POLS*sizeof(double));
 
   //reset map histogram fifo
-  for (int poli=0; poli<NUM_POLS; poli++) {
+  for (int poli=0; poli<k::NUM_POLS; poli++) {
     for (int loc=0; loc<fifoLength; loc++) {
       if (mapFifo[poli][loc] != NULL) {
 	delete mapFifo[poli][loc];
@@ -62,7 +62,7 @@ void AnitaNoiseMachine::zeroInternals() {
   mapFifoFillFlag = false;
 
   //reset map double array fifo
-  memset(rollingMapAvg,0,NUM_POLS*nPhi*nTheta*sizeof(double));
+  memset(rollingMapAvg,0,k::NUM_POLS*nPhi*nTheta*sizeof(double));
 
 }
 
@@ -70,9 +70,9 @@ void AnitaNoiseMachine::zeroInternals() {
 
 
 //so that I always am refering to the same index
-int AnitaNoiseMachine::rmsFifoIndex(int phi, int ringi, int poli, int pos) {
-  int index = phi*(NUM_ANTENNA_RINGS*NUM_POLS*fifoLength) + ringi*(NUM_POLS*fifoLength) + poli*(fifoLength) + pos;
-  int maximumIndex = NUM_PHI*NUM_ANTENNA_RINGS*NUM_POLS*fifoLength;
+int pueo::UCorrelator::NoiseMachine::rmsFifoIndex(int ant, int poli, int pos) {
+  int index = ant*(k::NUM_POLS*fifoLength) + poli*(fifoLength) + pos;
+  int maximumIndex = k::NUM_HORNS*k::NUM_POLS*fifoLength;
   if (index >= maximumIndex) {
     std::cout << "rmsFifoIndex: " << index << " > " << maximumIndex << std::endl;
     return (maximumIndex - 1); }
@@ -84,9 +84,9 @@ int AnitaNoiseMachine::rmsFifoIndex(int phi, int ringi, int poli, int pos) {
 
 
 //so that I always am refering to the same index
-int AnitaNoiseMachine::rollingMapIndex(int poli, int iPhi, int iTheta) {
+int pueo::UCorrelator::NoiseMachine::rollingMapIndex(int poli, int iPhi, int iTheta) {
   int index = poli*(nPhi*nTheta) + iPhi*(nTheta) + iTheta;
-  int maximumIndex = nPhi*nTheta*NUM_POLS;
+  int maximumIndex = nPhi*nTheta*k::NUM_POLS;
   if (index >= maximumIndex) {
     std::cout << "rollingMapIndex(): uhh you asked for an index that is bigger than the array ";
     std::cout << "(" << index << " > " << maximumIndex << ")" << std::endl;
@@ -101,7 +101,7 @@ int AnitaNoiseMachine::rollingMapIndex(int poli, int iPhi, int iTheta) {
 /*===============
   Fill everything */
 
-void AnitaNoiseMachine::updateMachine(UCorrelator::Analyzer *analyzer,FilteredAnitaEvent *filtered) {
+void pueo::UCorrelator::NoiseMachine::updateMachine(UCorrelator::Analyzer *analyzer,FilteredEvent *filtered) {
   updateAvgRMSFifo(filtered);
   updateAvgMapFifo(analyzer,filtered);
 
@@ -119,7 +119,7 @@ void AnitaNoiseMachine::updateMachine(UCorrelator::Analyzer *analyzer,FilteredAn
 
 /*=======================
   Updates Waveform RMS stuff */
-void AnitaNoiseMachine::updateAvgRMSFifo(FilteredAnitaEvent *filtered) {
+void pueo::UCorrelator::NoiseMachine::updateAvgRMSFifo(FilteredEvent *filtered) {
   
   if (!fJustInitialized) rmsFifoPos++;
   if (rmsFifoPos >= fifoLength) {
@@ -128,30 +128,26 @@ void AnitaNoiseMachine::updateAvgRMSFifo(FilteredAnitaEvent *filtered) {
   }
 
 
-  for (int phi=0; phi<NUM_PHI; phi++) {
-    for (int ringi=0; (AnitaRing::AnitaRing_t)ringi != AnitaRing::kNotARing; ringi++) {
-      AnitaRing::AnitaRing_t ring = (AnitaRing::AnitaRing_t)ringi;
-      for (int poli=0; (AnitaPol::AnitaPol_t)poli != AnitaPol::kNotAPol; poli++) {
-	AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t)poli;
+  for (int iant=0; iant<k::NUM_HORNS; iant++) {
+      for (int poli=0; (pol::pol_t)poli != pol::kNotAPol; poli++) {
 
+        pol::pol_t pol = (pol::pol_t)poli;
 
-	//subtract fifo position that is expiring (if there is one)
-	if (rmsFifoFillFlag) {
-	  double valueSub = rmsFifo[rmsFifoIndex(phi,ringi,poli,rmsFifoPos)];
-	  rmsAvg[phi][ringi][poli] -= valueSub;
-	}	
+        //subtract fifo position that is expiring (if there is one)
+        if (rmsFifoFillFlag) {
+          double valueSub = rmsFifo[rmsFifoIndex(iant,poli,rmsFifoPos)];
+          rmsAvg[iant][poli] -= valueSub;
+        }	
 
-	//get the rms
-	const TGraphAligned *currWave = filtered->getFilteredGraph(phi,ring,pol)->even();
-	double value = pow(currWave->GetRMS(2),2)/fifoLength;
+        //get the rms
+        const TGraphAligned *currWave = filtered->getFilteredGraph(iant,pol)->even();
+        double value = pow(currWave->GetRMS(2),2)/fifoLength;
 
-	//add the new fifo position to the running average
-	rmsAvg[phi][ringi][poli] += value;
+        //add the new fifo position to the running average
+        rmsAvg[iant][poli] += value;
 
-	//save it for the fifo for when you gotta subtract it later
-	rmsFifo[rmsFifoIndex(phi,ringi,poli,rmsFifoPos)] = value;
-
-      }
+        //save it for the fifo for when you gotta subtract it later
+        rmsFifo[rmsFifoIndex(iant,poli,rmsFifoPos)] = value;
     }
   }
 
@@ -167,7 +163,7 @@ void AnitaNoiseMachine::updateAvgRMSFifo(FilteredAnitaEvent *filtered) {
             rollingMapAvg - the double array that is in essence a histogram I can also subtract from
 
 */
-void AnitaNoiseMachine::updateAvgMapFifo(UCorrelator::Analyzer *analyzer, FilteredAnitaEvent *filtered) {
+void pueo::UCorrelator::NoiseMachine::updateAvgMapFifo(UCorrelator::Analyzer *analyzer, FilteredEvent *filtered) {
   std::stringstream name;
   
   //I gotta adjust it for heading too, so pull it out of filtered (do it like this for later when it gets integrated)
@@ -185,7 +181,7 @@ void AnitaNoiseMachine::updateAvgMapFifo(UCorrelator::Analyzer *analyzer, Filter
   }
 
   //do this for all polarization maps
-  for (int poli=0; poli<NUM_POLS; poli++) {
+  for (int poli=0; poli<k::NUM_POLS; poli++) {
 
     
     //if you've filled up the whole fifo and are now scanning
@@ -212,7 +208,7 @@ void AnitaNoiseMachine::updateAvgMapFifo(UCorrelator::Analyzer *analyzer, Filter
 
 
     //syntactically weirdly copy the new map out of UCorrelator    
-    const UCorrelator::gui::Map *currMap = analyzer->getCorrelationMap((AnitaPol::AnitaPol_t)poli);
+    const UCorrelator::gui::Map *currMap = analyzer->getCorrelationMap((pol::pol_t)poli);
     
     //rotate it and put the rotated map into the fifo for later
     mapFifo[poli][mapFifoPos] = UCorrelator::rotateHistogram(currMap,heading);
@@ -246,7 +242,7 @@ void AnitaNoiseMachine::updateAvgMapFifo(UCorrelator::Analyzer *analyzer, Filter
 
 /*------------*/
 
-TProfile2D* AnitaNoiseMachine::getAvgMapNoiseProfile(AnitaPol::AnitaPol_t pol) {
+TProfile2D* pueo::UCorrelator::NoiseMachine::getAvgMapNoiseProfile(pol::pol_t pol) {
 
   int nBinX = mapFifo[(int)pol][0]->GetNbinsX();
   int nBinY = mapFifo[(int)pol][0]->GetNbinsY();
@@ -283,9 +279,9 @@ TProfile2D* AnitaNoiseMachine::getAvgMapNoiseProfile(AnitaPol::AnitaPol_t pol) {
 
 /*===========================
   Copy the relevant things into the noise summary */
-void AnitaNoiseMachine::fillNoiseSummary(AnitaNoiseSummary *noiseSummary) {
+void pueo::UCorrelator::NoiseMachine::fillNoiseSummary(NoiseSummary *noiseSummary) {
   if (!rmsFifoFillFlag && !quiet) {
-    std::cout << "WARNING in AnitaNoiseMachine::fillNoiseSummary(): Fifo hasn't been filled entirely yet, ";
+    std::cout << "WARNING in pueo::UCorrelator::NoiseMachine::fillNoiseSummary(): Fifo hasn't been filled entirely yet, ";
     std::cout << " only gotten " << rmsFifoPos << " out of " << fifoLength << " values" << std::endl;
   }
   
@@ -295,19 +291,17 @@ void AnitaNoiseMachine::fillNoiseSummary(AnitaNoiseSummary *noiseSummary) {
   noiseSummary->rmsFifoFillFlag = rmsFifoFillFlag;
 
   //update RMS stuff (always do this, it compresses well and is important)
-  for (int phi=0; phi<NUM_PHI; phi++) {
-    for (int ringi=0; ringi<NUM_ANTENNA_RINGS; ringi++) {
-      for (int poli=0; poli<NUM_POLS; poli++) {
-	noiseSummary->avgRMSNoise[phi][ringi][poli] = rmsAvg[phi][ringi][poli];
-      }
+  for (int ant=0; ant<k::NUM_HORNS; ant++) {
+      for (int poli=0; poli<k::NUM_POLS; poli++) {
+        noiseSummary->avgRMSNoise[ant][poli] = rmsAvg[ant][poli];
     }
   }
   
 
   //fill a map, but only if one of the flags is on, fillMap is used if both are selected
   if (fillAvgMap || fillMap) {
-    for (int poli=0; (AnitaPol::AnitaPol_t)poli != AnitaPol::kNotAPol; poli++) {
-      AnitaPol::AnitaPol_t pol = (AnitaPol::AnitaPol_t)poli;
+    for (int poli=0; (pol::pol_t)poli != pol::kNotAPol; poli++) {
+      pol::pol_t pol = (pol::pol_t)poli;
       if (noiseSummary->avgMapProf[poli] != NULL) {
 	delete noiseSummary->avgMapProf[poli];
 	noiseSummary->avgMapProf[poli] = NULL;
@@ -326,17 +320,17 @@ void AnitaNoiseMachine::fillNoiseSummary(AnitaNoiseSummary *noiseSummary) {
 
 
 /*=========================
-  Added a thing to AnitaEventSummary that this machine needs to fill 
+  Added a thing to EventSummary that this machine needs to fill 
 */
  
  
-void AnitaNoiseMachine::fillEventSummary(AnitaEventSummary *eventSummary) {
+void pueo::UCorrelator::NoiseMachine::fillEventSummary(EventSummary *eventSummary) {
    
   
 
-  for (int poli=0; poli<NUM_POLS; poli++) {
+  for (int poli=0; poli<k::NUM_POLS; poli++) {
     
-    for (int dir=0; dir<AnitaEventSummary::maxDirectionsPerPol; dir++) {
+    for (int dir=0; dir<EventSummary::maxDirectionsPerPol; dir++) {
       double peakPhi = eventSummary->peak[poli][dir].phi;
       while (peakPhi < 0)    peakPhi += 360; //because the sun is translated stupidly
       while (peakPhi >= 360) peakPhi -= 360;
@@ -366,9 +360,9 @@ void AnitaNoiseMachine::fillEventSummary(AnitaEventSummary *eventSummary) {
 
 
 
-void AnitaNoiseMachine::setSourceMapHistoryVal(AnitaEventSummary::SourceHypothesis& source) {
+void pueo::UCorrelator::NoiseMachine::setSourceMapHistoryVal(EventSummary::SourceHypothesis& source) {
 
-  for (int poli=0; poli<NUM_POLS; poli++) {
+  for (int poli=0; poli<k::NUM_POLS; poli++) {
     double sourcePhi = source.phi - lastHeading;
     while (sourcePhi < 0)   sourcePhi += 360; //because the sun is translated stupidly
     while (sourcePhi >= 360) sourcePhi -= 360;
