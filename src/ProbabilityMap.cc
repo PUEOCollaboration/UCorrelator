@@ -471,7 +471,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
     //start with guess
     const EventSummary::PointingHypothesis *pk = &sum->peak[pol][peak];  
     PayloadParameters guess;  
-    int status =  PayloadParameters::findSourceOnContinent(pk->theta,pk->phi,gps, &guess, p.refract, p.collision_detection ? p.collision_params.dx : 0); 
+    int status =  PayloadParameters::findSourceOnContinent(pk->theta,pk->phi,pat.asAntarcticCoord(), &guess, pat.asPayloadAttitude(),  p.refract, p.collision_detection ? p.collision_params.dx : 0); 
     if (p.verbosity > 2) 
     {
       guess.source.to(AntarcticCoord::STEREOGRAPHIC); 
@@ -553,7 +553,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         for (int i = 0; i < nsamples; i++)
         {
           //This computes the payload in source coords and vice versa
-          PayloadParameters pp(gps, samples[i], p.refract); 
+          PayloadParameters pp(pat.asAntarcticCoord(), samples[i], pat.asPayloadAttitude(), p.refract); 
 
 
           pos = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
@@ -765,7 +765,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
       PayloadParameters pp; 
 
-      int status = PayloadParameters::findSourceOnContinent(theta,phi,gps, &pp, p.refract, p.collision_detection ? p.collision_params.dx :0); 
+      int status = PayloadParameters::findSourceOnContinent(theta,phi,pat.asAntarcticCoord(), &pp, pat.asPayloadAttitude(), p.refract, p.collision_detection ? p.collision_params.dx :0); 
       if (status == 1) 
       {
 //         AntarcticCoord c(AntarcticCoord::WGS84,lat,lon,alt); 
@@ -801,7 +801,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
       //TODO: can veto most bases early probalby 
 
-      PayloadParameters pp (gps,base_pos, p.refract); 
+      PayloadParameters pp (pat.asAntarcticCoord(),base_pos, pat.asPayloadAttitude(),  p.refract); 
       if (pp.payload_el < p.backwards_params.el_cutoff || ( p.collision_detection && pp.checkForCollision(p.collision_params.dx,0,0, p.dataset, p.collision_params.grace))) continue ; 
 
       double base_phi = pp.source_phi; 
