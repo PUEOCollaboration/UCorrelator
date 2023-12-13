@@ -5,7 +5,7 @@
 
 
 
-int pueo::UCorrelator::flags::checkEmpty(const UsefulEvent *ev, std::bitset<k::NUM_HORNS> * save_h, std::bitset<k::NUM_HORNS> * save_v)
+int pueo::UCorrelator::flags::checkEmpty(const UsefulEvent *ev, std::bitset<k::NUM_ANTS> * save_h, std::bitset<k::NUM_ANTS> * save_v)
 {
   
 

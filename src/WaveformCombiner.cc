@@ -86,7 +86,7 @@ const pueo::AnalysisWaveform * pueo::UCorrelator::WaveformCombiner::wf (const Fi
 
 
 
-void pueo::UCorrelator::WaveformCombiner::combine(double phi, double theta, const FilteredEvent * event, pol::pol_t pol, std::bitset<k::NUM_HORNS> disallowed, double t0, double t1, double * avg_of_peaks, bool use_hilbert)
+void pueo::UCorrelator::WaveformCombiner::combine(double phi, double theta, const FilteredEvent * event, pol::pol_t pol, std::bitset<k::NUM_ANTS> disallowed, double t0, double t1, double * avg_of_peaks, bool use_hilbert)
 {
 
   std::vector<AnalysisWaveform> padded(nant);

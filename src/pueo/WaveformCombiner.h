@@ -39,7 +39,7 @@ namespace pueo
 
         /** Combines the waveforms from the given event */ 
         void combine(double phi, double theta, const FilteredEvent * event, pol::pol_t pol, 
-            std::bitset<k::NUM_HORNS> disallowed = 0, double t0 = 0, double t1 = 100, 
+            std::bitset<k::NUM_ANTS> disallowed = 0, double t0 = 0, double t1 = 100, 
             double * avg_of_peaks =0, bool use_hilbert = true); 
 
         const AnalysisWaveform * getCoherent() const { return &coherent; }

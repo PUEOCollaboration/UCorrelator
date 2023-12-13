@@ -34,7 +34,7 @@ pueo::UCorrelator::AntennaPositions::AntennaPositions(int version)
 
   for (int pol = pol::kHorizontal; pol <= pol::kVertical; pol++)
   {
-    for (int ant  = 0; ant < k::NUM_HORNS; ant++) 
+    for (int ant  = 0; ant < k::NUM_ANTS; ant++) 
     {
 //      printf("%d %d\n",pol,ant); 
 //
@@ -46,7 +46,7 @@ pueo::UCorrelator::AntennaPositions::AntennaPositions(int version)
 
 }
 
-int pueo::UCorrelator::AntennaPositions::getClosestAntennas(double phi, int N, int * closest, std::bitset<k::NUM_HORNS> disallowed , pol::pol_t pol) const
+int pueo::UCorrelator::AntennaPositions::getClosestAntennas(double phi, int N, int * closest, std::bitset<k::NUM_ANTS> disallowed , pol::pol_t pol) const
 {
 
   assert(N < k::NUM_HORNS); 

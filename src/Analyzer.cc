@@ -214,7 +214,7 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
   }
 
   //check for saturation
-  std::bitset<k::NUM_HORNS> saturated[2] = {0,0}; 
+  std::bitset<k::NUM_ANTS> saturated[2] = {0,0}; 
   event->checkSaturation( &saturated[pol::kHorizontal], 
       &saturated[pol::kVertical], 
       cfg->saturation_threshold); 
@@ -296,10 +296,10 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
 
 
     //if we are only considering antennas that are unmasked, figure out which ones are 
-    std::bitset<k::NUM_HORNS> maskedAnts= 0; 
+    std::bitset<k::NUM_ANTS> maskedAnts= 0; 
     if (cfg->min_peak_distance_from_unmasked >=0) 
     {
-      for (uint64_t iphi = 0; iphi < 16; iphi++)
+      for (uint64_t iphi = 0; iphi < 24; iphi++)
       {
         bool unmasked = !(maskedPhi & (1ul << iphi)) ; 
 
@@ -315,6 +315,7 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
           maskedAnts |= 1ul << iphi; 
           maskedAnts |= 1ul << (iphi+k::NUM_PHI); 
           maskedAnts |= 1ul << (iphi+2*k::NUM_PHI); 
+          maskedAnts |= 1ul << (iphi+3*k::NUM_PHI); 
         }
       }
     }

@@ -109,7 +109,7 @@ class AnalysisWaveform;
         void clearInteractiveMemory(double frac = 0.5) const; 
         
         /** Sets disallowed antennas with a bitmask */
-        void setDisallowedAntennas(std::bitset<k::NUM_HORNS> hpol=0, std::bitset<k::NUM_HORNS> vpol=0) {disallowedAnts[0] = hpol; disallowedAnts[1] = vpol; } 
+        void setDisallowedAntennas(std::bitset<k::NUM_ANTS> hpol=0, std::bitset<k::NUM_ANTS> vpol=0) {disallowedAnts[0] = hpol; disallowedAnts[1] = vpol; } 
         
         /** Excludes the range for finding peaks in phi (full range is 0 -> 360)*/
         void setExcludePhiRange(double phiMin, double phiMax) {phiRange[0] = phiMin; phiRange[1] = phiMax; exclude = true; }
@@ -172,7 +172,7 @@ class AnalysisWaveform;
         bool interactive; 
         bool interactive_deconvolved; 
         bool interactive_xpol_deconvolved; 
-        std::bitset<k::NUM_HORNS> disallowedAnts[2];
+        std::bitset<k::NUM_ANTS> disallowedAnts[2];
         double phiRange[2];
         double thetaRange[2];
         bool exclude;

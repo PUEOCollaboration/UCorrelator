@@ -42,10 +42,10 @@ namespace pueo
         TH2D* computeZoomed(double phi, double theta, int nphi, double dphi,  int ntheta, double dtheta, int nant = 0, TH2D * useme = 0); 
 
         /** Disable the antennas given by the bitmap */ 
-        void setDisallowedAntennas(std::bitset<k::NUM_HORNS> disallowed) { disallowed_antennas = disallowed; } 
+        void setDisallowedAntennas(std::bitset<k::NUM_ANTS> disallowed) { disallowed_antennas = disallowed; } 
 
         /** Enable only the antennas given by the bitmap */ 
-        void setAllowedAntennas(std::bitset<k::NUM_HORNS> allowed) { disallowed_antennas = ~allowed; } 
+        void setAllowedAntennas(std::bitset<k::NUM_ANTS> allowed) { disallowed_antennas = ~allowed; } 
 
         /** An antenna only contributes to an angle if it's within max_phi  of it */
         void setMaxAntennaMaxPhiDistance(double max_ant_phi) { max_phi = max_ant_phi;  max_phi2 = max_phi * max_phi; } 
@@ -62,10 +62,10 @@ namespace pueo
 
         //Added for BinnedAnalysis - JCF 9/27/2021
         /** Disable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
-        void disallowAntennas(std::bitset<k::NUM_HORNS> disallowed) { disallowed_antennas |= disallowed; }
+        void disallowAntennas(std::bitset<k::NUM_ANTS> disallowed) { disallowed_antennas |= disallowed; }
 
         /** Enable the antennas given by the bitmap, but leave all others alone */    // sammy 2016/10/27
-        void allowAntennas(std::bitset<k::NUM_HORNS> allowed) { disallowed_antennas &= ~allowed; }
+        void allowAntennas(std::bitset<k::NUM_ANTS> allowed) { disallowed_antennas &= ~allowed; }
 
         /** Set the normalization      added sammy */
         void setNormalization(AnalysisConfig::NormalizationOption_t n) { normalization_option = n; }
@@ -79,8 +79,8 @@ namespace pueo
         virtual ~Correlator(); 
 
       private: 
-        AnalysisWaveform* padded_waveforms[k::NUM_HORNS]; 
-        AnalysisWaveform* correlations[k::NUM_HORNS][k::NUM_HORNS]; 
+        AnalysisWaveform* padded_waveforms[k::NUM_ANTS]; 
+        AnalysisWaveform* correlations[k::NUM_ANTS][k::NUM_ANTS]; 
 
         TH2D *hist; 
         TH2D *norm; 
@@ -89,10 +89,10 @@ namespace pueo
         std::vector<TH2D*> norms; 
 
         TrigCache * trigcache[k::NUM_PUEO+1]; 
-        double rms[k::NUM_HORNS]; 
+        double rms[k::NUM_ANTS]; 
 
         double max_phi, max_phi2;
-        std::bitset<k::NUM_HORNS> disallowed_antennas;
+        std::bitset<k::NUM_ANTS> disallowed_antennas;
         int pad_factor;
         const FilteredEvent * ev; 
         pol::pol_t pol; 

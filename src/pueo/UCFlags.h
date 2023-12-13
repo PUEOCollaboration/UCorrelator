@@ -18,7 +18,7 @@ namespace UCorrelator
   namespace flags 
   {
     /** Checks for missing antennas and marks the bitmasks */ 
-    int checkEmpty(const UsefulEvent *ev,  std::bitset<k::NUM_HORNS> *hempty, std::bitset<k::NUM_HORNS> *vempty); 
+    int checkEmpty(const UsefulEvent *ev,  std::bitset<k::NUM_ANTS> *hempty, std::bitset<k::NUM_ANTS> *vempty); 
 
 
   }
