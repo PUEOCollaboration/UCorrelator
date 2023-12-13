@@ -115,12 +115,12 @@ static void combineHists(int N, T ** hists )
     __restrict A* v = hists[i]->GetArray(); 
 #ifdef UCORRELATOR_OPENMP
 #pragma omp simd 
+#endif
     for(int j = 0; j < nbins; j++) 
     {
       sum[j]+=v[j]; 
     }
   }
-#endif
 }
 
 
