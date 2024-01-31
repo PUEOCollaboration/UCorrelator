@@ -10,10 +10,11 @@ int pueo::UCorrelator::flags::checkEmpty(const UsefulEvent *ev, std::bitset<k::N
   
 
   int nmissing = 0; 
+  auto geom = GeomTool::Instance(); 
   for (int i = 0; i < k::NUM_HORNS; i++) 
   {
-      int hindex = GeomTool::getChanIndexFromAntPol(i,pol::kHorizontal); 
-      int vindex = GeomTool::getChanIndexFromAntPol(i,pol::kVertical); 
+      int hindex = geom.getChanIndexFromAntPol(i,pol::kHorizontal); 
+      int vindex = geom.getChanIndexFromAntPol(i,pol::kVertical); 
 
       const double *yh = &ev->volts[hindex][0]; 
       const double *yv = &ev->volts[vindex][0]; 
