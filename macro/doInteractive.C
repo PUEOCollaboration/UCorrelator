@@ -1,6 +1,6 @@
 #include "FFTtools.h" 
 
-pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -1, bool decimated = false, bool simulated = true )
+pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -2, bool decimated = false, bool simulated = true )
 {
 
   FFTtools::loadWisdom("wisdom.dat"); 
@@ -28,7 +28,7 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -1, bool dec
 //strategy.addOperation(butter); 
 
 
-  pueo::Dataset d(run,decimated, simulated ? pueo::Dataset::PUEO_MC_DATA : pueo::Dataset::PUEO_ROOT_DATA);
+  pueo::Dataset d(run, simulated ? pueo::Dataset::PUEO_MC_DATA : pueo::Dataset::PUEO_ROOT_DATA);
 
   event > 0 ? d.getEvent(event) : d.getEntry(-event); 
 
@@ -55,6 +55,8 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -1, bool dec
   cfg.use_coherent_spectra = false; 
 
   pueo::UCorrelator::Analyzer * analyzer = new pueo::UCorrelator::Analyzer(&cfg,true); 
+
+  //analyzer->getCorrelator()->dumpDeltaTs("delta_ts.root");
 
 //  strategy->addOperation(new UCorrelator::DeconvolveFilter(analyzer->getResponseManager(), cfg.deconvolution_method)); 
 //  strategy->addOperation(new ALFAFilter); 
