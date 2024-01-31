@@ -173,8 +173,8 @@ pueo::UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_m
   max_phi = 75; 
   max_phi2 = max_phi*max_phi;
 
-  memset(padded_waveforms, 0, k::NUM_HORNS * sizeof(AnalysisWaveform*)); 
-  memset(correlations, 0, k::NUM_HORNS * k::NUM_HORNS * sizeof(AnalysisWaveform*)); 
+  memset(padded_waveforms, 0, k::NUM_ANTS * sizeof(AnalysisWaveform*)); 
+  memset(correlations, 0, k::NUM_ANTS * k::NUM_ANTS * sizeof(AnalysisWaveform*)); 
 
 #ifdef UCORRELATOR_OPENMP
   locks = new CorrelatorLocks; 
@@ -500,8 +500,8 @@ inline void pueo::UCorrelator::Correlator::doAntennas(int ant1, int ant2, TH2D *
                     ant1,ant2, max_phi, pol);
 
 
-   assert(ant1 < 48); 
-   assert(ant2 < 48); 
+   assert(ant1 < pueo::k::NUM_ANTS); 
+   assert(ant2 < pueo::k::NUM_ANTS); 
    if(!allowedFlag) return; 
 
    TH2D * the_hist  = these_hists[get_thread_id()]; 
