@@ -147,7 +147,7 @@ pueo::UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
   zoomed_nant = 12; 
 
 
-  combine_nantennas = 15; 
+  combine_nantennas = 24; 
   combine_npad = 3; 
 
   saturation_threshold = 1500; 
@@ -190,7 +190,7 @@ pueo::UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
 
   ldb_max_run = 160; 
 
-  fill_blast_fraction = true; 
+  fill_blast_fraction = false; 
   fill_channel_info = true; 
   set_bottom_first = true;
   stokes_fracI = 0.2; 
