@@ -1134,7 +1134,7 @@ void pueo::UCorrelator::Analyzer::fillFlags(const FilteredEvent * fae, EventSumm
   flags->meanPowerFiltered[0] = fae->getAveragePower(pol::kNotAPol, ring::kNotARing, true); 
   flags->medianPowerFiltered[0] = fae->getMedianPower(pol::kNotAPol, ring::kNotARing, true); 
 
-  for (int ring = 0; ring <ring::kNotARing; ring++)
+  for (int ring = ring::kTopRing; ring <ring::kNotARing; ring++)
   {
     flags->meanPower[1+ring] = fae->getAveragePower(pol::kNotAPol, ring::ring_t(ring)); 
     flags->medianPower[1+ring] = fae->getMedianPower(pol::kNotAPol, ring::ring_t(ring)); 
