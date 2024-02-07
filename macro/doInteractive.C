@@ -1,6 +1,6 @@
 #include "FFTtools.h" 
 
-pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -2, bool decimated = false, bool simulated = true )
+pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -10, bool write_out = true, bool decimated = false, bool simulated = true )
 {
 
   FFTtools::loadWisdom("wisdom.dat"); 
@@ -42,6 +42,9 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -2, bool dec
   cfg.enable_group_delay= !simulated; 
   cfg.delay_to_center = true; 
   cfg.use_forced_trigger_rms = false; 
+  cfg.correlator_nphi = 720;
+  cfg.correlator_ntheta = 200;
+  cfg.correlation_gain_correction=30; 
 //  cfg.r_time_shift_correction = !simulated; 
 //  cfg.max_peak_trigger_angle =45; 
 //  cfg.correlator_theta_lowest=90; 
@@ -118,6 +121,30 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -2, bool dec
   printf("cray4[1][0]: %g\n", ats.coherent[1][0].cRay[4]); 
 
   */ 
+
+
+  if (write_out) 
+  {
+		TFile out(Form("r%d_ev%d.root",run,event),"RECREATE"); 
+
+		TH2 * hpolmap = new TH2D(*analyzer->getCorrelationMap(pueo::pol::kHorizontal)); 
+		TH2 * vpolmap = new TH2D(*analyzer->getCorrelationMap(pueo::pol::kVertical)); 
+		pueo::pol::pol_t higherpol = analyzer->getSummary()->peak[pueo::pol::kHorizontal][0].value > analyzer->getSummary()->peak[pueo::pol::kVertical][0].value ? pueo::pol::kHorizontal : pueo::pol::kVertical; 
+		auto coh_c = analyzer->getCoherent(higherpol,0,true)->even();
+		auto coh_x = analyzer->getCoherentXpol(higherpol,0,true)->even();
+		TGraph * copol_coherent = new TGraph(coh_c->GetN(), coh_c->GetX(), coh_c->GetY()); 
+		TGraph * xpol_coherent = new TGraph(coh_x->GetN(), coh_x->GetX(), coh_x->GetY()); 
+		hpolmap->SetName("hpol"); 
+		vpolmap->SetName("vpol"); 
+		copol_coherent->SetName(higherpol == pueo::pol::kHorizontal ? "hpol_coherent" : "vpol_coherent");
+		xpol_coherent->SetName(higherpol == pueo::pol::kHorizontal ? "vpol_coherent" : "hpol_coherent");
+
+		copol_coherent->Write(copol_coherent->GetName());
+		xpol_coherent->Write(xpol_coherent->GetName());
+		out.Write(); 
+		out.Close(); 
+	}
+
 
   return analyzer; 
 }
