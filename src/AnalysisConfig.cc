@@ -210,7 +210,7 @@ pueo::UCorrelator::AnalysisConfig::AnalysisConfig(const char * config)
 
   use_coherent_spectra = false; 
   combine_t0 = -25; 
-  combine_t1 = 125; 
+  combine_t1 = 425; 
   use_hilbert_for_antenna_average = true; 
 
 }
