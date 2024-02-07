@@ -13,7 +13,7 @@
 #include <stdio.h>
 
   pueo::UCorrelator::WaveformCombiner::WaveformCombiner(int nantennas, int npad, bool useUnfiltered, bool deconvolve, const ResponseManager * response)
-: coherent(2048), deconvolved(2048)
+: coherent(2048*4), deconvolved(2048*4)
 {
   setNAntennas(nantennas); 
   setNPad(npad); 
