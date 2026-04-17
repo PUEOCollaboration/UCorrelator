@@ -974,7 +974,7 @@ void pueo::UCorrelator::SineSubtractFilter::fillOutput(unsigned ui, double * var
 }
 
 
-void pueo::UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
+void pueo::UCorrelator::SineSubtractFilter::refresh_cache(Int_t run, UInt_t eventNumber){
   if(use_sine_sub_cache){
     if(!sine_sub_cache){
       sine_sub_cache = new SineSubtractCache(this->description());
@@ -984,7 +984,7 @@ void pueo::UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
     pol::pol_t pol = (pol::pol_t) polInd;
     for(int ant=0; ant < k::NUM_HORNS; ant++){
       if(use_sine_sub_cache){
-        cached_ssr[pol][ant] = sine_sub_cache->getResult(eventNumber, pol, ant);
+        cached_ssr[pol][ant] = sine_sub_cache->getResult(run, eventNumber, pol, ant);
       }
       else{
         cached_ssr[pol][ant] = NULL;
@@ -996,7 +996,7 @@ void pueo::UCorrelator::SineSubtractFilter::refresh_cache(UInt_t eventNumber){
 void pueo::UCorrelator::SineSubtractFilter::process(FilteredEvent * ev) 
 {
  const RawHeader * h = ev->getHeader(); 
- refresh_cache(h->eventNumber);
+ refresh_cache(h->run, h->eventNumber);
 
 #ifdef UCORRELATOR_OPENMP
 #pragma omp parallel for
@@ -1029,7 +1029,7 @@ void pueo::UCorrelator::SineSubtractFilter::processOne(AnalysisWaveform *wf, con
       for (int j = 0; j < reduction[pol][i]->GetN(); j++) 
       {
         reduction[pol][i]->GetX()[j] = peaky->GetXaxis()->GetBinLowEdge(j+1); 
-        double t = header->triggerTime + header->triggerTimeNs * 1e-9;
+        double t = header->corrected_trigger_time.AsDouble();
 
         if (header->triggerTime < peaky->GetYaxis()->GetXmin())
         {
@@ -1345,7 +1345,7 @@ pueo::UCorrelator::AdaptiveMinimumPhaseFilter::~AdaptiveMinimumPhaseFilter()
 void pueo::UCorrelator::AdaptiveMinimumPhaseFilter::process(FilteredEvent * ev) 
 {
 
-  double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
+  double t = ev->getHeader()->corrected_trigger_time.AsDouble();
   int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 
 
@@ -1467,7 +1467,7 @@ pueo::UCorrelator::AdaptiveBrickWallFilter::~AdaptiveBrickWallFilter()
 void pueo::UCorrelator::AdaptiveBrickWallFilter::process(FilteredEvent *ev)
 {
 
-  double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
+  double t = ev->getHeader()->corrected_trigger_time.AsDouble();
 //  double t= ev->getHeader()->realTime; //until icemc fixes this
   int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 
@@ -1552,7 +1552,7 @@ pueo::UCorrelator::AdaptiveButterworthFilter::AdaptiveButterworthFilter(const Ti
 void pueo::UCorrelator::AdaptiveButterworthFilter::process(FilteredEvent * ev) 
 {
 
-  double t = ev->getHeader()->triggerTime + ev->getHeader()->triggerTimeNs*1e-9; 
+  double t = ev->getHeader()->corrected_trigger_time.AsDouble();
 //  double t = ev->getHeader()->realTime; //until icemc fixes this 
   int bin = avg->avg(t)->getPeakiness(pol::kHorizontal,0)->GetYaxis()->FindBin(t); 
 

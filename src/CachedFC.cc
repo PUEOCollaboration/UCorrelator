@@ -1,6 +1,7 @@
 #include "pueo/CachedFC.h" 
 #include <iostream> 
 #include "Math/ProbFuncMathCore.h" 
+#include <cmath>
 
 #if __cplusplus <= 199711L
 

@@ -148,7 +148,7 @@ pueo::UCorrelator::SineSubtractCache::~SineSubtractCache(){
 
 
 
-const FFTtools::SineSubtractResult* pueo::UCorrelator::SineSubtractCache::getResult(UInt_t eventNumber, pol::pol_t pol, Int_t ant){
+const FFTtools::SineSubtractResult* pueo::UCorrelator::SineSubtractCache::getResult(int run, UInt_t eventNumber, pol::pol_t pol, Int_t ant){
 
   // hard to check whether anita version is correct...
   // this should happen
@@ -156,7 +156,6 @@ const FFTtools::SineSubtractResult* pueo::UCorrelator::SineSubtractCache::getRes
   // std::cerr << eventNumber << "\t" << pol << "\t" << ant << std::endl;
 
   if(eventNumber != fLastEventNumber){
-    int run = Dataset::getRunContainingEventNumber(eventNumber);
     if(run!=fLastAttemptedRun){//fCurrentRun){
       loadRun(run);
     }

@@ -18,7 +18,7 @@ double pueo::UCorrelator::getWAISDt(const UsefulAttitude * pat, const RawHeader 
 
   double time_to_wais = ((UsefulAttitude*) pat)->getWaisDivideTriggerTimeNs(); 
   if (distance) *distance = time_to_wais * C_in_m_ns; 
-  unsigned trig_time = hdr->triggerTimeNs; 
+  unsigned trig_time = hdr->corrected_trigger_time.GetNanoSec(); 
   return trig_time + (pol == pol::kHorizontal ? cfg->wais_hpol : cfg->wais_vpol).GPS_offset- time_to_wais; 
 }
 
@@ -60,8 +60,8 @@ bool pueo::UCorrelator::isLDB(const RawHeader * hdr, const AnalysisConfig * cfg 
   if (hdr->run > cfg->ldb_max_run) return false; 
   if (! cfg->ldb_hist()) return false; 
 
-  int binx = cfg->ldb_hist()->GetXaxis()->FindFixBin(hdr->triggerTime); 
-  int biny = cfg->ldb_hist()->GetYaxis()->FindFixBin(hdr->triggerTimeNs); 
+  int binx = cfg->ldb_hist()->GetXaxis()->FindFixBin(hdr->corrected_trigger_time.GetSec()); 
+  int biny = cfg->ldb_hist()->GetYaxis()->FindFixBin(hdr->corrected_trigger_time.GetNanoSec()); 
   return cfg->ldb_hist()->GetBinContent(binx,biny); 
 }
 

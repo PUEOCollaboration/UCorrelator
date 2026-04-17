@@ -26,7 +26,7 @@ class SineSubtractCache {
   
   SineSubtractCache(const char* descr);
   virtual ~SineSubtractCache();
-  const FFTtools::SineSubtractResult* getResult(UInt_t eventNumber, pol::pol_t pol, Int_t antenna);
+  const FFTtools::SineSubtractResult* getResult(Int_t run, UInt_t eventNumber, pol::pol_t pol, Int_t antenna);
 
 
   Bool_t fDebug;

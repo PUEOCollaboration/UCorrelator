@@ -150,7 +150,7 @@ int pueo::UCorrelator::TimeDependentAverage::computeAverage(double max_r, int mi
     d.getEntry(i); 
     FilteredEvent ev(d.useful(), &str, d.gps(), d.header()); 
     
-    double t= d.header()->triggerTime; 
+    double t= d.header()->corrected_trigger_time.AsDouble(); 
 
     //cut out possible blasts. This is perhaps a bit aggressive, but it's worth it 
     double max_ratio_hpol, max_ratio_vpol; 
@@ -167,7 +167,7 @@ int pueo::UCorrelator::TimeDependentAverage::computeAverage(double max_r, int mi
       continue; 
     }
 
-    bool isRF = d.header()->trigType & 1; 
+    bool isRF = d.header()->trigType & pueo::trigger::kRFMI;
 
     (isRF ? norms : norms_minbias)->Fill(t); 
     int tbin = norms->FindFixBin(t); 

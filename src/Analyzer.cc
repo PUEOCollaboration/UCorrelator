@@ -182,7 +182,7 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
 
   const RawHeader * hdr = event->getHeader(); 
   //this is for time dependent responses (right now only TUFFs)	
-  responses.checkTime(hdr->payloadTime);
+  responses.checkTime(hdr->readoutTime);
   //we need a UsefulAdu5Pat for this event
   UsefulAttitude * pat =  (UsefulAttitude*) event->getGPS();  //unconstifying it .. hopefully that won't cause problems
 
@@ -226,47 +226,48 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
   for (int pol = cfg->start_pol; pol <= cfg->end_pol; pol++) 
   {
 
-    UShort_t triggeredPhi = event->getHeader()->phiTrigMask[pol];
-    UShort_t triggeredPhiXpol =event->getHeader()->phiTrigMask[!pol];
+    UInt_t triggeredPhi = event->getHeader()->phiTrigMask[pol];
+    UInt_t triggeredPhiXpol =event->getHeader()->phiTrigMask[!pol];
 
 
-    UShort_t maskedL2 = 0;   
-    UShort_t maskedPhi = 0 ; 
-    UShort_t maskedL2Xpol = 0;   
-    UShort_t maskedPhiXpol = 0 ; 
+    //TODO compute these if we want to supprot this feature
+//    UShort_t maskedL2 = 0;   
+    UInt_t maskedPhi = 0 ; 
+//    UShort_t maskedL2Xpol = 0;   
+    UInt_t maskedPhiXpol = 0 ; 
+//
+////    maskedPhi =  event->getHeader()->phi_trig_mask[pol];
+////    maskedPhiXpol = event->getHeader()->phi_trig_mask[!pol];
+//
+//
+//    //alright, we need a little song and dance here to combine Phi masks and L2 masks 
+//    //
+//    //  Someone should check my logic here. 
+//    //
+//    // An L2 mask effectively masks both phi sector N and N+1 (since it'll prevent L3 triggers in both). 
+//    // An L3 mask has contributions from both phi sector N and N-1. 
+//    //
+//    // I'm going to take the aggressive approach where an L3 mask means we mark a pointing hypothesis as masked
+//    // if it falls in phi sector N or N-1. 
+//
 
-    maskedPhi =  event->getHeader()->phiTrigMask[pol];
-    maskedPhiXpol = event->getHeader()->phiTrigMask[!pol];
-
-
-    //alright, we need a little song and dance here to combine Phi masks and L2 masks 
-    //
-    //  Someone should check my logic here. 
-    //
-    // An L2 mask effectively masks both phi sector N and N+1 (since it'll prevent L3 triggers in both). 
-    // An L3 mask has contributions from both phi sector N and N-1. 
-    //
-    // I'm going to take the aggressive approach where an L3 mask means we mark a pointing hypothesis as masked
-    // if it falls in phi sector N or N-1. 
-
-
-#ifdef __cpp_static_assert
-    static_assert(sizeof(maskedPhi == k::NUM_PHI),"masked phi must be same size as num phi "); 
-#endif
-
-    maskedPhi |= ( (maskedPhi >> 1) | ( maskedPhi << (k::NUM_PHI-1))) ; 
-    //or with l2 mask
-    maskedPhi |= maskedL2; 
-
-
-#ifdef __cpp_static_assert
-    static_assert(sizeof(maskedPhiXpol ==k::NUM_PHI),"masked phi xpol must be same size as num phi "); 
-#endif
-
-    //ditto for xpol 
-    maskedPhiXpol |=  (maskedPhiXpol >> 1) | ((maskedPhiXpol << (k::NUM_PHI-1))); 
-    maskedPhiXpol |= maskedL2Xpol; 
-
+//#ifdef __cpp_static_assert
+//    static_assert(sizeof(maskedPhi == k::NUM_PHI),"masked phi must be same size as num phi "); 
+//#endif
+//
+//    maskedPhi |= ( (maskedPhi >> 1) | ( maskedPhi << (k::NUM_PHI-1))) ; 
+//    //or with l2 mask
+///   maskedPhi |= maskedL2; 
+//
+//
+//#ifdef __cpp_static_assert
+//    static_assert(sizeof(maskedPhiXpol ==k::NUM_PHI),"masked phi xpol must be same size as num phi "); 
+//#endif
+//
+//    //ditto for xpol 
+// //   maskedPhiXpol |=  (maskedPhiXpol >> 1) | ((maskedPhiXpol << (k::NUM_PHI-1))); 
+////    maskedPhiXpol |= maskedL2Xpol; 
+//
     //TODO: check this 
     TVector2 triggerAngle(0,0); 
 
@@ -282,43 +283,42 @@ void pueo::UCorrelator::Analyzer::analyze(const FilteredEvent * event, EventSumm
     {
       if (which_trigger & (1 << i))
       {
-        //TODO: this 45 is hardcoded here. Should come from GeomTool or something... 
-        double ang = (i * phi_sector_width - 45) * TMath::Pi()/180;
+        double ang = (i * phi_sector_width) * TMath::Pi()/180;
         triggerAngle += TVector2(cos(ang), sin(ang)) / which_ntriggered; 
       }
     }
 
     double avgHwAngle = triggerAngle.Phi() * RAD2DEG; 
-
-    // tell the correlator not to use saturated events or disallowed antennas and make the correlation map
-    saturated[pol] |= disallowedAnts[pol];
-//    if(cfg->only_use_usable) saturated[pol] |= ~FlightInfo::getUsableAntennas(hdr, event->getUsefulEvent(), pol::pol_t(pol));
-
-
-    //if we are only considering antennas that are unmasked, figure out which ones are 
+//
+//    // tell the correlator not to use saturated events or disallowed antennas and make the correlation map
+//    saturated[pol] |= disallowedAnts[pol];
+////    if(cfg->only_use_usable) saturated[pol] |= ~FlightInfo::getUsableAntennas(hdr, event->getUsefulEvent(), pol::pol_t(pol));
+//
+//
+//    //if we are only considering antennas that are unmasked, figure out which ones are 
     std::bitset<k::NUM_ANTS> maskedAnts= 0; 
-    if (cfg->min_peak_distance_from_unmasked >=0) 
-    {
-      for (uint64_t iphi = 0; iphi < 24; iphi++)
-      {
-        bool unmasked = !(maskedPhi & (1ul << iphi)) ; 
-
-        for (int neighboring = 0; neighboring < cfg->min_peak_distance_from_unmasked; neighboring++)
-        {
-          if (unmasked) break; 
-          unmasked = unmasked || !(maskedPhi & (1ul << ( (iphi + neighboring) % k::NUM_PHI))); 
-          unmasked = unmasked || !(maskedPhi & (1ul << ( (iphi + neighboring + k::NUM_PHI - 1) % k::NUM_PHI))); 
-        }
-
-        if (!unmasked) 
-        {
-          maskedAnts |= 1ul << iphi; 
-          maskedAnts |= 1ul << (iphi+k::NUM_PHI); 
-          maskedAnts |= 1ul << (iphi+2*k::NUM_PHI); 
-          maskedAnts |= 1ul << (iphi+3*k::NUM_PHI); 
-        }
-      }
-    }
+//    if (cfg->min_peak_distance_from_unmasked >=0) 
+//    {
+//      for (uint64_t iphi = 0; iphi < 24; iphi++)
+//      {
+//        bool unmasked = !(maskedPhi & (1ul << iphi)) ; 
+//
+//        for (int neighboring = 0; neighboring < cfg->min_peak_distance_from_unmasked; neighboring++)
+//        {
+//          if (unmasked) break; 
+//          unmasked = unmasked || !(maskedPhi & (1ul << ( (iphi + neighboring) % k::NUM_PHI))); 
+//          unmasked = unmasked || !(maskedPhi & (1ul << ( (iphi + neighboring + k::NUM_PHI - 1) % k::NUM_PHI))); 
+//        }
+//
+//        if (!unmasked) 
+//        {
+//          maskedAnts |= 1ul << iphi; 
+//          maskedAnts |= 1ul << (iphi+k::NUM_PHI); 
+//          maskedAnts |= 1ul << (iphi+2*k::NUM_PHI); 
+//          maskedAnts |= 1ul << (iphi+3*k::NUM_PHI); 
+//        }
+//      }
+//    }
 
     corr.setDisallowedAntennas(saturated[pol] | disallowedAnts[pol] | maskedAnts); 
     //BinnedAnalysis addition - JCF 9/29/2021

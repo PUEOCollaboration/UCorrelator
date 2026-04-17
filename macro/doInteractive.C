@@ -1,6 +1,6 @@
 #include "FFTtools.h" 
 
-pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -10, bool write_out = true, bool decimated = false, bool simulated = true )
+pueo::UCorrelator::Analyzer *doInteractive(int run = 1, int event = -4001, bool write_out = true, bool decimated = false, bool simulated = false )
 {
 
   FFTtools::loadWisdom("wisdom.dat"); 
@@ -21,7 +21,7 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -10, bool wr
 //  ssf->makeAdaptive(avg); 
 //  UCorrelator::AdaptiveMinimumPhaseFilter * mp = new UCorrelator::AdaptiveMinimumPhaseFilter(avg,-2,5); 
 //  printf("UCorrelator::AdaptiveMinimumPhaseFilter * mp = (UCorrelator::AdaptiveMinimumPhaseFilter *) %p\n",mp); 
-//  strategy->addOperation(mp); 
+// strategy->addOperation(ssf); 
 //
 //UCorrelator::AdaptiveButterworthFilter * butter = new UCorrelator::AdaptiveButterworthFilter(&avg); 
 //printf("UCorrelator::AdaptiveButterworthFilter * butter = (UCorrelator::AdaptiveButterworthFilter *) %p\n",butter); 
@@ -33,9 +33,10 @@ pueo::UCorrelator::Analyzer *doInteractive(int run = 2, int event = -10, bool wr
   event > 0 ? d.getEvent(event) : d.getEntry(-event); 
 
 
+  d.useful()->drawWaveforms();
 
   pueo::UCorrelator::AnalysisConfig cfg; 
-  cfg.nmaxima = 2; 
+  cfg.nmaxima = 1; 
   cfg.response_option = pueo::UCorrelator::AnalysisConfig::ResponseNone; 
 //  cfg.deconvolution_method = new AnitaResponse::AllPassDeconvolution; 
   //cfg.deconvolution_method = new AnitaResponse::AllPassDeconvolution; 

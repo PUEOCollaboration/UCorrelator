@@ -242,7 +242,7 @@ namespace UCorrelator
 
    protected:
       SineSubtractCache* sine_sub_cache;
-      void refresh_cache(UInt_t eventNumber);
+      void refresh_cache(Int_t run, UInt_t eventNumber);
       const FFTtools::SineSubtractResult* cached_ssr[2][k::NUM_HORNS];
   };
 

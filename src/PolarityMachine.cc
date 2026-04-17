@@ -174,7 +174,7 @@ TH2D* pueo::PolarityMachine::generatePolarityMeasurements(int N, int eventNumber
 {
   d->getEvent(eventNumber, true);
   //make sure templates are loaded
-  loadTemplates(d->header()->realTime);
+  loadTemplates(d->header()->triggerTime);
   if(cr_snr <= 0)
   {
     printf("something is wrong with your SNR !!\n");
@@ -738,7 +738,7 @@ TH2D* pueo::PolarityMachine::runPolaritySimulation(int N, int eventNumber, doubl
 {
   d->getEvent(eventNumber, true);
   //make sure templates are loaded 
-  loadTemplates(d->header()->realTime);
+  loadTemplates(d->header()->triggerTime);
   FilterStrategy strat;
   TGraph* gCorr = 0;
   std::vector<double> corrs(numCRTemplates);

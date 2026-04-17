@@ -129,9 +129,9 @@ class AnalysisWaveform;
         /** Tracks the sun for peak finding, can be set to exclude or include the sun */
         void setTrackSun(double setdTheta = 2.5, double setdPhi = 5., bool blockOut = false) {dTheta = setdTheta; dPhi = setdPhi; exclude = blockOut; trackSun = true; }
         /** Tracks WAIS for peak finding, include or exclude  */
-        void setTrackWAIS(double setdTheta = 2.5, double setdPhi = 5., bool blockOut = false) {sourceLon = Locations::getWaisLongitude(); sourceLat = Locations::getWaisLatitude(); sourceAlt = Locations::getWaisAltitude(); dTheta = setdTheta; dPhi = setdPhi; exclude = blockOut; trackSource = true; }
+        void setTrackWAIS(double setdTheta = 2.5, double setdPhi = 5., bool blockOut = false) {sourceLon = Locations::getLongitude(Locations::WAIS); sourceLat = Locations::getLatitude(Locations::WAIS); sourceAlt = Locations::getAltitude(Locations::WAIS); dTheta = setdTheta; dPhi = setdPhi; exclude = blockOut; trackSource = true; }
         /** Tracks LDB for peak finding  */
-        void setTrackLDB(double setdTheta = 2.5, double setdPhi = 5., bool blockOut = false) {sourceLon = Locations::getLDBLongitude(), sourceLat = Locations::getLDBLatitude(), sourceAlt = Locations::getLDBAltitude(); dTheta = setdTheta; dPhi = setdPhi; exclude = blockOut; trackSource = true; }
+        void setTrackLDB(double setdTheta = 2.5, double setdPhi = 5., bool blockOut = false) {sourceLon = Locations::getLongitude(Locations::LDB), sourceLat = Locations::getLatitude(Locations::LDB), sourceAlt = Locations::getAltitude(Locations::LDB); dTheta = setdTheta; dPhi = setdPhi; exclude = blockOut; trackSource = true; }
         /** Allows you to set extra filters used only for combining waveforms */
         void setExtraFilters(FilterStrategy* extra);
         /** Allows you to set extra filters used only for combining deconvolved waveforms */

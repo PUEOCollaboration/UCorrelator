@@ -140,9 +140,9 @@ pueo::UCorrelator::Correlator::Correlator(int nphi, double phi_min, double phi_m
   TString normname = TString::Format("ucorr_norm_%d",count_the_correlators++);
 
   hist = new TH2D(histname.Data(),"Correlator", nphi, phi_min, phi_max, ntheta, theta_min, theta_max); 
-  hist->SetDirectory(0); 
+  hist->SetDirectory(0);
   norm = new TH2D(normname.Data(),"Normalization", nphi, phi_min, phi_max, ntheta, theta_min, theta_max);
-  norm->SetDirectory(0); 
+  norm->SetDirectory(0);
 
   hist->GetXaxis()->SetTitle("#phi"); 
   hist->GetYaxis()->SetTitle("-#theta"); 
@@ -665,7 +665,7 @@ inline void pueo::UCorrelator::Correlator::doAntennas(int ant1, int ant2, TH2D *
 void pueo::UCorrelator::Correlator::compute(const FilteredEvent * event, pol::pol_t whichpol) 
 {
 
-//  TStopwatch sw; 
+  TStopwatch sw; 
 
   pol = whichpol; 
   ev = event; 
@@ -753,7 +753,7 @@ SECTIONS
 
   hist->SetEntries(nonzero); 
   norm->SetEntries(nonzero); 
-//  sw.Print("u");
+  sw.Print("u");
 }
 
 

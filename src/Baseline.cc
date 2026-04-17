@@ -37,10 +37,6 @@ static int makeBaselines(int run, TGraph ** hpol, TGraph ** vpol, int N = 5000)
   {
     d.getEntry(i++); 
  
-    // skip non-RF triggers and a small fraction of times? is this really right? This is what Abby has though
-    if (d.header()-> trigType != 1 && d.header()->triggerTimeNs <= 1e6)  
-       continue; 
-
     //skip saturated events 
     
     pueo::FilteredEvent fae(d.useful(), &empty, d.gps(), d.header()); 
