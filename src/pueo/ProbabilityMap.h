@@ -239,43 +239,46 @@ public:
 
 private:
   Params p; 
+  // The length of the type alias course is not enforced, the alias are merely for readability
+  template <typename T> using VecS = std::vector<T>;         // Vector of length S, S for "segment"
+  template <typename T> using VecB = std::vector<T>;         // Same shit, B for "base" :)
+  template <typename T> using MatLxS = std::vector<VecS<T>>; // L row by S column matrix
+  template <typename T> using MatLxB = std::vector<VecB<T>>;
 
-  //indexed by segment
-  std::vector<double> ps; 
-  std::vector< std::vector<double> >  ps_without_base; //like ps, but require that no base above level is contained
-  std::vector<double> ps_norm; //like ps, but normalized so integral is 1 
-  std::vector< std::vector<double> >ps_norm_without_base; //like ps_without_base, but normalized so integral is 1 
+  VecS<double>   ps; 
+  MatLxS<double> ps_without_base;      /// like ps, but require that no base above level is contained
+  VecS<double>   ps_norm;              /// like ps, but normalized so integral is 1 
+  MatLxS<double> ps_norm_without_base; /// like ps_without_base, but normalized so integral is 1 
 
-  std::vector<double> max1_ps;  //maximum value
-  std::vector<double> max1_ps_norm; //max1_ps, but normalized so integral is 1 
-  std::vector<double> max2_ps;  //second to maximum value 
-  std::vector<double> max2_ps_norm; //max2_ps, but normalized so integral is 1 
-
+  VecS<double> max1_ps;      //maximum value
+  VecS<double> max1_ps_norm; //max1_ps, but normalized so integral is 1 
+  VecS<double> max2_ps;      //second to maximum value 
+  VecS<double> max2_ps_norm; //max2_ps, but normalized so integral is 1 
 
   // these are all the sums of the square roots instead, needed for computing the overlaps properly
-  std::vector<double> sqrt_ps; 
-  std::vector< std::vector<double> >  sqrt_ps_without_base; 
-  std::vector<double> sqrt_ps_norm; 
-  std::vector< std::vector<double> >sqrt_ps_norm_without_base;
+  VecS<double>   sqrt_ps; 
+  MatLxS<double> sqrt_ps_without_base; 
+  VecS<double>   sqrt_ps_norm; 
+  MatLxS<double> sqrt_ps_norm_without_base;
 
-  std::vector<double> fraction_occluded; 
-  //indexed by level then segment 
-  std::vector< std::vector<int> > n_above_level; 
-  std::vector< std::vector<int> > n_above_level_norm; 
-  std::vector< std::vector<double> > wgt_above_level; // like n_above_level, but 1/N_over_level_per_event is put in each bin, so that the number of contributing events can be reliably determined 
-  std::vector< std::vector<double> > wgt_above_level_norm; // like n_above_level, but 1/N_over_level_per_event is put in each bin, so that the number of contributing events can be reliably determined 
+  VecS<double> fraction_occluded; 
 
+  MatLxS<int>    n_above_level; 
+  MatLxS<int>    n_above_level_norm; 
+  /** Like n_above_level, but 1/N_over_level_per_event is put in each bin,
+   *  so that the number of contributing events can be reliably determined */
+  MatLxS<double> wgt_above_level;
+  MatLxS<double> wgt_above_level_norm;
 
-  std::vector< std::vector<int> > n_above_level_without_base; 
-  std::vector< std::vector<int> > n_above_level_without_base_norm; 
-  std::vector< std::vector<double> > wgt_above_level_without_base; 
-  std::vector< std::vector<double> > wgt_above_level_without_base_norm; 
+  MatLxS<int>    n_above_level_without_base; 
+  MatLxS<int>    n_above_level_without_base_norm; 
+  MatLxS<double> wgt_above_level_without_base; 
+  MatLxS<double> wgt_above_level_without_base_norm; 
 
-  //indexed by base
-  std::vector< std::vector<int> > base_n_above_level; ; 
-  std::vector< std::vector<int> > base_n_above_level_norm; ; 
-  std::vector<double> base_sums; 
-  std::vector<double> base_sums_norm; 
+  MatLxB<int>  base_n_above_level; ; 
+  MatLxB<int>  base_n_above_level_norm; ; 
+  VecB<double> base_sums; 
+  VecB<double> base_sums_norm; 
 
   //guards the add method (everything else doesn't touch the internals) 
   TMutex m; 

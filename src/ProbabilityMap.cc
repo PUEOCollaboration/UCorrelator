@@ -2,7 +2,6 @@
 #include "pueo/PointingResolutionModel.h"
 #include "assert.h" 
 #include "BaseList.h" 
-#include "Math/ProbFunc.h"
 #include "pueo/UsefulAttitude.h" 
 #include "AntarcticaGeometry.h"
  
@@ -27,38 +26,38 @@ const pueo::UCorrelator::PointingResolutionModel & pueo::UCorrelator::defaultPoi
 
 static pueo::UCorrelator::ProbabilityMap::Params default_params; 
 
+#define NUM_SEGs  p.seg->NSegments()
+#define NUM_BASEs BaseList::getNumBases() + BaseList::getNumPaths()
+#define VEC_ZEROS(TYPE,LENGTH) std::vector<TYPE>(LENGTH,0)
 pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par) 
   :  
     p( par ? *par : default_params), 
-    ps(p.seg->NSegments(),0), 
-    ps_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    ps_norm(p.seg->NSegments(),0), 
-    ps_norm_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    max1_ps(p.seg->NSegments(),0), 
-    max1_ps_norm(p.seg->NSegments(),0), 
-    max2_ps(p.seg->NSegments(),0), 
-    max2_ps_norm(p.seg->NSegments(),0), 
-    sqrt_ps(p.seg->NSegments(),0), 
-    sqrt_ps_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    sqrt_ps_norm(p.seg->NSegments(),0), 
-    sqrt_ps_norm_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    fraction_occluded(p.seg->NSegments(), 0), 
-    n_above_level(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    n_above_level_norm(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    wgt_above_level(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    wgt_above_level_norm(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    n_above_level_without_base(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    n_above_level_without_base_norm(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    wgt_above_level_without_base(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    wgt_above_level_without_base_norm(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    base_n_above_level(NLevels(), std::vector<int>(BaseList::getNumBases() + BaseList::getNumPaths(), 0)), 
-    base_n_above_level_norm(NLevels(), std::vector<int>(BaseList::getNumBases() + BaseList::getNumPaths(), 0)), 
-    base_sums(BaseList::getNumBases() + BaseList::getNumPaths()) , 
-    base_sums_norm(BaseList::getNumBases() + BaseList::getNumPaths()) 
-{
-
-
-}
+    ps                                  (p.seg->NSegments(),0), 
+    ps_without_base                     (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    ps_norm                             (NUM_SEGs,0), 
+    ps_norm_without_base                (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    max1_ps                             (NUM_SEGs,0), 
+    max1_ps_norm                        (NUM_SEGs,0), 
+    max2_ps                             (NUM_SEGs,0), 
+    max2_ps_norm                        (NUM_SEGs,0), 
+    sqrt_ps                             (NUM_SEGs,0), 
+    sqrt_ps_without_base                (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    sqrt_ps_norm                        (NUM_SEGs,0), 
+    sqrt_ps_norm_without_base           (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    fraction_occluded                   (NUM_SEGs,0), 
+    n_above_level                       (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    n_above_level_norm                  (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    wgt_above_level                     (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    wgt_above_level_norm                (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    n_above_level_without_base          (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    n_above_level_without_base_norm     (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    wgt_above_level_without_base        (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    wgt_above_level_without_base_norm   (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    base_n_above_level                  (NLevels(), VEC_ZEROS(int,   NUM_BASEs)), 
+    base_n_above_level_norm             (NLevels(), VEC_ZEROS(int,   NUM_BASEs)), 
+    base_sums                           (BaseList::getNumBases() + BaseList::getNumPaths()) , 
+    base_sums_norm                      (BaseList::getNumBases() + BaseList::getNumPaths()) 
+{}
 
 
 int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::Attitude * pat, pol::pol_t pol,
@@ -88,7 +87,6 @@ int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::
   TLockGuard lock(&m); 
 
   int incr = weight > 0 ? 1 : weight < 0 ? -1 : 0; 
-  int Nbases = base_ps_to_fill.size(); 
   int min_base_level = NLevels(); 
   int min_base_level_norm = NLevels(); 
 
@@ -102,7 +100,7 @@ int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::
   double invnorm = norm < p.min_p_on_continent ? 0 : 1./norm;
   if (p.verbosity > 2) printf("invnorm: %g\n", invnorm); 
 
-  for (int i = 0; i < Nbases; i++)
+  for (int i = 0; i < base_ps_to_fill.size(); i++)
   {
     int ibase = base_ps_to_fill[i].first; 
     double dens_base = base_ps_to_fill[i].second * weight; 
