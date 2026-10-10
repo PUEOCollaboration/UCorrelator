@@ -29,7 +29,7 @@ static pueo::UCorrelator::ProbabilityMap::Params default_params;
 
 #define NUM_SEGs  p.seg->NSegments()
 #define NUM_BASEs BaseList::getNumBases() + BaseList::getNumPaths()
-#define VEC_ZEROS(TYPE,LENGTH) std::vector<TYPE>(LENGTH,0)
+#define VEC_ZEROS(TYPE,LENGTH) fixed_size_vector<TYPE>(LENGTH,0)
 pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par) 
   :  
     p( par ? *par : default_params), 
@@ -61,8 +61,10 @@ pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par)
 {}
 
 
-using Seg2Val=std::pair<int,double>;
+using AntarcticMap_SegmentIdx=int;
+using Seg2Val=std::pair<AntarcticMap_SegmentIdx,double>;
 using Base2Val=std::pair<int,double>;
+
 int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::Attitude * pat, pol::pol_t pol,
                                      int peak, double weight, TFile * debugfile) 
 {
@@ -461,10 +463,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
   double min_p = dist2dens(maxDistance(), inv_two_pi_sqrt_det); 
 
   // std::vector<int> used ( segmentationScheme()->NSegments()); 
-  // The array elements of `is_this_segment_checked` has a 1-to-1 correspondence to the map of the continent,
-  // which is binned according to `AntarcticSegmentationScheme`
-  // (ie the elements are stored in ascending bin index).
-  TArrayI is_this_segment_checked (NUM_SEGs); // array size calculated at run time so can't use std::array
+  VecS<bool> is_this_segment_checked (NUM_SEGs, false);
 
   UsefulAttitude pat(gps); 
 
@@ -496,19 +495,18 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
     // std::vector<int> segs_to_check; 
 
     size_t num_segments_checked = 0; 
-    using AntarcticMap_BinIdx=int;
-    std::vector<AntarcticMap_BinIdx> continent_segments_in_random_order;
+    std::vector<AntarcticMap_SegmentIdx> continent_segments_in_random_order;
 
     // segs_to_check.reserve(100);  // a plausible number
     continent_segments_in_random_order.reserve(100);  // a plausible number
 
     // int guess_seg = segmentationScheme()->getSegmentIndex(guess.source); 
     // if (guess_seg < 0) return inv_two_pi_sqrt_det; 
-    AntarcticMap_BinIdx initial_guess = segmentationScheme()->getSegmentIndex(myRayTrace.source); 
+    AntarcticMap_SegmentIdx initial_guess = segmentationScheme()->getSegmentIndex(myRayTrace.source); 
     if (initial_guess < 0) return inv_two_pi_sqrt_det; 
 
     // used[guess_seg] = 1; 
-    is_this_segment_checked.SetAt(true, initial_guess);
+    is_this_segment_checked.at(initial_guess) = true;
 
     // segs_to_check.push_back(guess_seg); 
     continent_segments_in_random_order.push_back(initial_guess);
@@ -618,10 +616,10 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
                // we want to make sure that whatever segment is occluding is is considered, if it isn't already. So let's project to continent from payload and ensure we have that segment already 
                int potential_seg = p.seg->getSegmentIndex(collid_exit); 
                // if (!used[potential_seg]) 
-               if ( !is_this_segment_checked.At(potential_seg) )
+               if ( !is_this_segment_checked.at(potential_seg) )
                {
                    // used[potential_seg] = segs_to_check.size(); 
-                   is_this_segment_checked.SetAt(true, potential_seg);
+                   is_this_segment_checked.at(potential_seg) = true;
                    // segs_to_check.push_back(potential_seg); 
                    continent_segments_in_random_order.push_back(potential_seg);
                }
@@ -791,10 +789,10 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         {
           int new_seg = new_neighbors[j];
           // if (!used[new_seg])
-          if (!is_this_segment_checked.At(new_seg))
+          if (!is_this_segment_checked.at(new_seg))
           {
             // used[new_seg] = segs_to_check.size(); 
-            is_this_segment_checked.SetAt(true, new_seg); 
+            is_this_segment_checked.at(new_seg) = true;
             // segs_to_check.push_back(new_seg); 
             continent_segments_in_random_order.push_back(new_seg);
           }

@@ -239,17 +239,40 @@ public:
 
 private:
   Params p; 
-  // `AntarcticSegmentationScheme` divides up the stereographic map of the continent into discrete bins.
-  // VecS means there should be S elements in vector where S stands for "segments". 
-  // The i-th element in the vector corresponds to the i-th bin of the map.
-  // The length of the type alias, of course, is not enforced. The alias is merely for readability.
-  // TODO ~use TArrays to make sure their size won't change~ actually implement my own allocate-once vector
-  //      since TArray still allows size resets which is stupid af
-  template <typename T> using VecS = std::vector<T>;
+  // I want assurance that the size of the vector won't change, just because.
+  // We can't use `std::array` because it requires a known length at compile time.
+  // The `fixed_size_vector` is an attempt to prevent length modification after construction
+  // by exposing (hopefully) only the methods that don't mess with the capacity and size.
+  template <typename T>
+  class fixed_size_vector: private std::vector<T>{
+  public:
+    using std::vector<T>::at;
+    using std::vector<T>::front;
+    using std::vector<T>::back;
+    using std::vector<T>::begin;
+    using std::vector<T>::end;
+    using std::vector<T>::size;
+    using std::vector<T>::operator[];
+    using std::vector<T>::operator=;
+    using std::vector<T>::vector;
+  };
+
+
+  /** `AntarcticSegmentationScheme` divides up the stereographic map of the continent into discrete bins.
+   * The alias `VecS` SUGGESTS that there should be `S` elements in the array,
+   * but this is not enforced by the aliasing and is purely for readability.
+   * The array length of `VecS` is actually determined by how the `fixed_size_vector` is constructed.
+   * Note that after its construction, however,
+   * no public method of `fixed_size_vector` can change the array length.
+   * The i-th element of `VecS` should correspond to the i-th bin of the Antarctic stereographic map. 
+   * (ie the elements are stored in ascending bin index).
+   * Again, this is only a SUGGESTION and not enforced by the type alias.
+   */
+  template <typename T> using VecS = fixed_size_vector<T>;
   // Same as VecS, but B for "base" (as in manned stations) :)
-  template <typename T> using VecB = std::vector<T>;
-  template <typename T> using MatLxS = std::vector<VecS<T>>; // Matrix: L rows by S columns
-  template <typename T> using MatLxB = std::vector<VecB<T>>;
+  template <typename T> using VecB = fixed_size_vector<T>;
+  template <typename T> using MatLxS = fixed_size_vector<VecS<T>>; // Matrix: L rows by S columns
+  template <typename T> using MatLxB = fixed_size_vector<VecB<T>>;
 
   VecS<double>   ps; 
   MatLxS<double> ps_without_base;      /// like ps, but require that no base above level is contained
