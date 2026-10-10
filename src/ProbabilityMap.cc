@@ -549,9 +549,8 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
     while (num_segments_checked < continent_segments_in_random_order.size())
     {
       // int seg = segs_to_check[nchecked++]; 
-      num_segments_checked++;
-      // int seg = segs_to_check[nchecked++]; 
       int this_segment = continent_segments_in_random_order[num_segments_checked]; 
+      num_segments_checked++;
 
       bool done_with_this_segment = false; 
       //if we are at a steep angle, we should enhance anyway 

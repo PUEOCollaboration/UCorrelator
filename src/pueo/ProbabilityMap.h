@@ -243,7 +243,8 @@ private:
   // VecS means there should be S elements in vector where S stands for "segments". 
   // The i-th element in the vector corresponds to the i-th bin of the map.
   // The length of the type alias, of course, is not enforced. The alias is merely for readability.
-  // TODO use TArrays to make sure their size won't change :)
+  // TODO ~use TArrays to make sure their size won't change~ actually implement my own allocate-once vector
+  //      since TArray still allows size resets which is stupid af
   template <typename T> using VecS = std::vector<T>;
   // Same as VecS, but B for "base" (as in manned stations) :)
   template <typename T> using VecB = std::vector<T>;
