@@ -4,6 +4,7 @@
 #include "BaseList.h" 
 #include "pueo/UsefulAttitude.h" 
 #include "AntarcticaGeometry.h"
+#include "TArray.h"
  
 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
@@ -60,12 +61,13 @@ pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par)
 {}
 
 
+using Seg2Val=std::pair<int,double>;
+using Base2Val=std::pair<int,double>;
 int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::Attitude * pat, pol::pol_t pol,
                                      int peak, double weight, TFile * debugfile) 
 {
-
-  std::vector<std::pair<int,double> > segments_to_fill; 
-  std::vector<std::pair<int,double> > base_ps_to_fill; 
+  std::vector<Seg2Val> segments_to_fill;
+  std::vector<Base2Val> base_ps_to_fill;
   std::vector<std::pair<int,double> > occluded_to_fill; 
   std::vector<std::pair<int,double> > max_densities; ; 
 

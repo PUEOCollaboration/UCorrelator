@@ -239,10 +239,15 @@ public:
 
 private:
   Params p; 
-  // The length of the type alias course is not enforced, the alias are merely for readability
-  template <typename T> using VecS = std::vector<T>;         // Vector of length S, S for "segment"
-  template <typename T> using VecB = std::vector<T>;         // Same shit, B for "base" :)
-  template <typename T> using MatLxS = std::vector<VecS<T>>; // L row by S column matrix
+  // `AntarcticSegmentationScheme` divides up the stereographic map of the continent into discrete bins.
+  // VecS means there should be S elements in vector where S stands for "segments". 
+  // The i-th element in the vector corresponds to the i-th bin of the map.
+  // The length of the type alias, of course, is not enforced. The alias is merely for readability.
+  // TODO use TArrays to make sure their size won't change :)
+  template <typename T> using VecS = std::vector<T>;
+  // Same as VecS, but B for "base" (as in manned stations) :)
+  template <typename T> using VecB = std::vector<T>;
+  template <typename T> using MatLxS = std::vector<VecS<T>>; // Matrix: L rows by S columns
   template <typename T> using MatLxB = std::vector<VecB<T>>;
 
   VecS<double>   ps; 
