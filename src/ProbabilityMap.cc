@@ -2,9 +2,9 @@
 #include "pueo/PointingResolutionModel.h"
 #include "assert.h" 
 #include "BaseList.h" 
-#include "Math/ProbFunc.h"
 #include "pueo/UsefulAttitude.h" 
 #include "AntarcticaGeometry.h"
+#include "TArray.h"
  
 
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,0,0)
@@ -27,46 +27,49 @@ const pueo::UCorrelator::PointingResolutionModel & pueo::UCorrelator::defaultPoi
 
 static pueo::UCorrelator::ProbabilityMap::Params default_params; 
 
+#define NUM_SEGs  p.seg->NSegments()
+#define NUM_BASEs BaseList::getNumBases() + BaseList::getNumPaths()
+#define VEC_ZEROS(TYPE,LENGTH) fixed_size_vector<TYPE>(LENGTH,0)
 pueo::UCorrelator::ProbabilityMap::ProbabilityMap(const Params * par) 
   :  
     p( par ? *par : default_params), 
-    ps(p.seg->NSegments(),0), 
-    ps_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    ps_norm(p.seg->NSegments(),0), 
-    ps_norm_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    max1_ps(p.seg->NSegments(),0), 
-    max1_ps_norm(p.seg->NSegments(),0), 
-    max2_ps(p.seg->NSegments(),0), 
-    max2_ps_norm(p.seg->NSegments(),0), 
-    sqrt_ps(p.seg->NSegments(),0), 
-    sqrt_ps_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    sqrt_ps_norm(p.seg->NSegments(),0), 
-    sqrt_ps_norm_without_base(NLevels(), std::vector<double> (p.seg->NSegments(),0)), 
-    fraction_occluded(p.seg->NSegments(), 0), 
-    n_above_level(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    n_above_level_norm(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    wgt_above_level(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    wgt_above_level_norm(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    n_above_level_without_base(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    n_above_level_without_base_norm(NLevels(), std::vector<int>(p.seg->NSegments(),0)),
-    wgt_above_level_without_base(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    wgt_above_level_without_base_norm(NLevels(), std::vector<double>(p.seg->NSegments(),0)),
-    base_n_above_level(NLevels(), std::vector<int>(BaseList::getNumBases() + BaseList::getNumPaths(), 0)), 
-    base_n_above_level_norm(NLevels(), std::vector<int>(BaseList::getNumBases() + BaseList::getNumPaths(), 0)), 
-    base_sums(BaseList::getNumBases() + BaseList::getNumPaths()) , 
-    base_sums_norm(BaseList::getNumBases() + BaseList::getNumPaths()) 
-{
+    ps                                  (p.seg->NSegments(),0), 
+    ps_without_base                     (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    ps_norm                             (NUM_SEGs,0), 
+    ps_norm_without_base                (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    max1_ps                             (NUM_SEGs,0), 
+    max1_ps_norm                        (NUM_SEGs,0), 
+    max2_ps                             (NUM_SEGs,0), 
+    max2_ps_norm                        (NUM_SEGs,0), 
+    sqrt_ps                             (NUM_SEGs,0), 
+    sqrt_ps_without_base                (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    sqrt_ps_norm                        (NUM_SEGs,0), 
+    sqrt_ps_norm_without_base           (NLevels(), VEC_ZEROS(double,NUM_SEGs)), 
+    fraction_occluded                   (NUM_SEGs,0), 
+    n_above_level                       (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    n_above_level_norm                  (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    wgt_above_level                     (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    wgt_above_level_norm                (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    n_above_level_without_base          (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    n_above_level_without_base_norm     (NLevels(), VEC_ZEROS(int,   NUM_SEGs)),
+    wgt_above_level_without_base        (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    wgt_above_level_without_base_norm   (NLevels(), VEC_ZEROS(double,NUM_SEGs)),
+    base_n_above_level                  (NLevels(), VEC_ZEROS(int,   NUM_BASEs)), 
+    base_n_above_level_norm             (NLevels(), VEC_ZEROS(int,   NUM_BASEs)), 
+    base_sums                           (BaseList::getNumBases() + BaseList::getNumPaths()) , 
+    base_sums_norm                      (BaseList::getNumBases() + BaseList::getNumPaths()) 
+{}
 
 
-}
-
+using AntarcticMap_SegmentIdx=int;
+using Seg2Val=std::pair<AntarcticMap_SegmentIdx,double>;
+using Base2Val=std::pair<int,double>;
 
 int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::Attitude * pat, pol::pol_t pol,
                                      int peak, double weight, TFile * debugfile) 
 {
-
-  std::vector<std::pair<int,double> > segments_to_fill; 
-  std::vector<std::pair<int,double> > base_ps_to_fill; 
+  std::vector<Seg2Val> segments_to_fill;
+  std::vector<Base2Val> base_ps_to_fill;
   std::vector<std::pair<int,double> > occluded_to_fill; 
   std::vector<std::pair<int,double> > max_densities; ; 
 
@@ -88,7 +91,6 @@ int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::
   TLockGuard lock(&m); 
 
   int incr = weight > 0 ? 1 : weight < 0 ? -1 : 0; 
-  int Nbases = base_ps_to_fill.size(); 
   int min_base_level = NLevels(); 
   int min_base_level_norm = NLevels(); 
 
@@ -102,7 +104,7 @@ int pueo::UCorrelator::ProbabilityMap::add(const EventSummary * sum, const nav::
   double invnorm = norm < p.min_p_on_continent ? 0 : 1./norm;
   if (p.verbosity > 2) printf("invnorm: %g\n", invnorm); 
 
-  for (int i = 0; i < Nbases; i++)
+  for (int i = 0; i < base_ps_to_fill.size(); i++)
   {
     int ibase = base_ps_to_fill[i].first; 
     double dens_base = base_ps_to_fill[i].second * weight; 
@@ -447,14 +449,11 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
   p.point->computePointingResolution(sum,pol, peak, &pr);  
   contribution.clear(); 
 
-
-  if ( pr.getdPhi() > p.max_dphi || pr.getdTheta() > p.max_dtheta) 
-  {
-    if (p.verbosity > 0) 
-    {
-      printf("Rejecting %d:%d:%d due to failing pointing resolution cut (dphi: %g, dtheta: %g\n", sum->eventNumber, (int) pol, peak, pr.getdPhi(), pr.getdTheta()); 
-    }
-
+  if ( (pr.getdPhi() > p.max_dphi || pr.getdTheta() > p.max_dtheta) && p.verbosity > 0) {
+    printf(
+      "Rejecting %cpol event %d (peak %d) due to failing pointing resolution cut (dphi: %g, dtheta: %g)\n",
+      pueo::pol::asChar(pol), sum->eventNumber, peak, pr.getdPhi(), pr.getdTheta()
+    );
     return 0 ;
   }
 
@@ -463,51 +462,77 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
   double inv_two_pi_sqrt_det = get_inv_two_pi_sqrt_det(pr.getdPhi(), pr.getdTheta(), pr.getCorr()); 
   double min_p = dist2dens(maxDistance(), inv_two_pi_sqrt_det); 
 
-  std::vector<int> used ( segmentationScheme()->NSegments()); 
+  // std::vector<int> used ( segmentationScheme()->NSegments()); 
+  VecS<bool> is_this_segment_checked (NUM_SEGs, false);
+
   UsefulAttitude pat(gps); 
 
   if (p.projection == Params::BACKWARD) 
   {
     //start with guess
     const EventSummary::PointingHypothesis *pk = &sum->peak[pol][peak];  
-    PayloadParameters guess;  
-    int status =  PayloadParameters::findSourceOnContinent(pk->theta,pk->phi,pat.asAntarcticCoord(), &guess, pat.asPayloadAttitude(),  p.refract, p.collision_detection ? p.collision_params.dx : 0); 
+
+    // PayloadParameters guess;  
+    // sorry for the confusing class name, but I'm afraid we're stuck with it
+    using RayTracer=PayloadParameters;
+    RayTracer myRayTrace;
+
+    // int status =  PayloadParameters::findSourceOnContinent(pk->theta,pk->phi,pat.asAntarcticCoord(), &guess, pat.asPayloadAttitude(),  p.refract, p.collision_detection ? p.collision_params.dx : 0); 
+    int _status = RayTracer::findSourceOnContinent(
+        pk->theta, pk->phi, pat.asAntarcticCoord(), &myRayTrace, pat.asPayloadAttitude(), 
+        p.refract, p.collision_detection ? p.collision_params.dx : 0); 
+
     if (p.verbosity > 2) 
     {
-      guess.source.to(AntarcticCoord::STEREOGRAPHIC); 
-      printf("status =%d , loc = %g %g %g\n", status, guess.source.x, guess.source.y, guess.source.z); 
+      // guess.source.to(AntarcticCoord::STEREOGRAPHIC); 
+      RayTracer & mrt = myRayTrace;
+      myRayTrace.source.to(AntarcticCoord::STEREOGRAPHIC); 
+      // printf("status =%d , loc = %g %g %g\n", status, guess.source.x, guess.source.y, guess.source.z); 
+      printf("status =%d , loc = %g %g %g\n", _status, mrt.source.x, mrt.source.y, mrt.source.z); 
     }
     /* set up vector of segments to check */
-    size_t nchecked = 0; 
-    std::vector<int> segs_to_check; 
-    segs_to_check.reserve(100);  // a plausible number
-    int guess_seg = segmentationScheme()->getSegmentIndex(guess.source); 
-    if (guess_seg < 0) return inv_two_pi_sqrt_det; 
-    used[guess_seg] = 1; 
-    segs_to_check.push_back(guess_seg); 
+    // size_t nchecked = 0; 
+    // std::vector<int> segs_to_check; 
 
-    AntarcticCoord pos = segmentationScheme()->getSegmentCenter(segs_to_check[0]); 
-    pos.to(AntarcticCoord::WGS84); 
+    size_t num_segments_checked = 0; 
+    std::vector<AntarcticMap_SegmentIdx> continent_segments_in_random_order;
 
-    if (p.verbosity > 2) 
-    {
+    // segs_to_check.reserve(100);  // a plausible number
+    continent_segments_in_random_order.reserve(100);  // a plausible number
+
+    // int guess_seg = segmentationScheme()->getSegmentIndex(guess.source); 
+    // if (guess_seg < 0) return inv_two_pi_sqrt_det; 
+    AntarcticMap_SegmentIdx initial_guess = segmentationScheme()->getSegmentIndex(myRayTrace.source); 
+    if (initial_guess < 0) return inv_two_pi_sqrt_det; 
+
+    // used[guess_seg] = 1; 
+    is_this_segment_checked.at(initial_guess) = true;
+
+    // segs_to_check.push_back(guess_seg); 
+    continent_segments_in_random_order.push_back(initial_guess);
+
+    if (p.verbosity > 2) { 
+      // AntarcticCoord pos = segmentationScheme()->getSegmentCenter(segs_to_check[0]); 
+      AntarcticCoord pos = segmentationScheme()->getSegmentCenter(initial_guess); 
+      pos.to(AntarcticCoord::WGS84); 
       printf("center position: %g %g %g\n", pos.x, pos.y, pos.z); 
     }
-    int nsamples = p.backwards_params.num_samples_per_bin; 
+    AntarcticCoord some_point_on_continent;
+
+    // int nsamples = p.backwards_params.num_samples_per_bin; 
+    int num_coord_samples_per_segment = p.backwards_params.num_samples_per_bin; 
     /* set up vectors for sample phis /thetas/ densities */ 
 
     //Figure out the enhancement steps; 
     std::vector<int> enhancement_steps (1+p.backwards_params.max_enhance); 
-    enhancement_steps[0] = nsamples; 
+    // enhancement_steps[0] = nsamples; 
+    enhancement_steps[0] = num_coord_samples_per_segment; 
     for (int e = 1; e <= p.backwards_params.max_enhance; e++)
     {
         enhancement_steps[e] = pow( ceil (sqrt(enhancement_steps[e-1] * 2)),2); 
     }
 
     int max_samples = enhancement_steps[p.backwards_params.max_enhance]; 
-
-
-
 
     std::vector<AntarcticCoord> samples(max_samples); 
     std::vector<double> dens(max_samples);; 
@@ -518,10 +543,12 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
     std::vector<bool> occluded(max_samples); 
 
     /** Loop over segments we need to check to see if p > cutoff */
-    while (nchecked < segs_to_check.size())
+    // while (nchecked < segs_to_check.size())
+    while (num_segments_checked < continent_segments_in_random_order.size())
     {
-      int seg = segs_to_check[nchecked++]; 
-
+      // int seg = segs_to_check[nchecked++]; 
+      int this_segment = continent_segments_in_random_order[num_segments_checked]; 
+      num_segments_checked++;
 
       bool done_with_this_segment = false; 
       //if we are at a steep angle, we should enhance anyway 
@@ -537,30 +564,38 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         // we want to find the smallest perfect square at least twice as many nsamples
         if (enhance_factor) 
         {
-          nsamples = enhancement_steps[enhance_factor]; 
-          if (p.verbosity > 0) printf("ENHANCE! To %d\n", nsamples); 
+          // nsamples = enhancement_steps[enhance_factor]; 
+          num_coord_samples_per_segment = enhancement_steps[enhance_factor]; 
+          if (p.verbosity > 0) printf("ENHANCE! To %d\n", num_coord_samples_per_segment); 
         }
-      
+
         // segment into a bunch of positions
-        segmentationScheme()->sampleSegment(seg, nsamples, &samples[0], p.backwards_params.random_samples);  // do we want to randomize? i dunno. I'll decide later. 
+        // segmentationScheme()->sampleSegment(seg, nsamples, &samples[0], p.backwards_params.random_samples);  // do we want to randomize? i dunno. I'll decide later. 
+        segmentationScheme()->sampleSegment(
+            this_segment, num_coord_samples_per_segment, &samples[0], p.backwards_params.random_samples
+        );  // do we want to randomize? i dunno. I'll decide later. 
         
-      // loop over the samples, 
-      //  we want to check:
-      //     - can this sample probably see ANITA? 
-      //     - what are the coordinates of this sample in ANITA's frame? 
-      //
-//#pragma omp parallel for
-        for (int i = 0; i < nsamples; i++)
+        // loop over the samples, 
+        //  we want to check:
+        //     - can this sample probably see ANITA? 
+        //     - what are the coordinates of this sample in ANITA's frame? 
+        //
+        //#pragma omp parallel for
+        // for (int i = 0; i < nsamples; i++)
+        for (int i = 0; i < num_coord_samples_per_segment; i++)
         {
           //This computes the payload in source coords and vice versa
           PayloadParameters pp(pat.asAntarcticCoord(), samples[i], pat.asPayloadAttitude(), p.refract); 
 
 
-          pos = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
+          // pos = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
+          some_point_on_continent = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
 
           if (p.verbosity > 3) 
           {
-            printf("   sample %d position: %g %g %g\n", i, pos.x, pos.y, pos.z); 
+            // printf("   sample %d position: %g %g %g\n", i, pos.x, pos.y, pos.z); 
+            AntarcticCoord & _pt = some_point_on_continent;
+            printf("   sample %d position: %g %g %g\n", i, _pt.x, _pt.y, _pt.z); 
             printf("      delta phi: %g\n",pp.source_phi - sum->peak[pol][peak].phi); 
             printf("      delta el: %g\n",pp.source_theta - sum->peak[pol][peak].theta); 
             printf("      payload el: %g %g\n", pp.payload_el, p.backwards_params.el_cutoff); 
@@ -580,10 +615,13 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
                // we want to make sure that whatever segment is occluding is is considered, if it isn't already. So let's project to continent from payload and ensure we have that segment already 
                int potential_seg = p.seg->getSegmentIndex(collid_exit); 
-               if (!used[potential_seg]) 
+               // if (!used[potential_seg]) 
+               if ( !is_this_segment_checked.at(potential_seg) )
                {
-                   used[potential_seg] = segs_to_check.size(); 
-                   segs_to_check.push_back(potential_seg); 
+                   // used[potential_seg] = segs_to_check.size(); 
+                   is_this_segment_checked.at(potential_seg) = true;
+                   // segs_to_check.push_back(potential_seg); 
+                   continent_segments_in_random_order.push_back(potential_seg);
                }
               
             }
@@ -600,13 +638,15 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
           while(phis[i] - phi0 < -180) phis[i] +=360; 
 
           thetas[i]=pp.source_theta; 
-          xs[i] = pos.x; 
-          ys[i] = pos.y; 
+          // xs[i] = pos.x; 
+          // ys[i] = pos.y; 
+          xs[i] = some_point_on_continent.x; 
+          ys[i] = some_point_on_continent.y; 
         }
       
-
         /* compute the probabilities for each set of angles */ 
-        pr.computeProbabilityDensity(nsamples, &phis[0], &thetas[0], &dens[0]); 
+        // pr.computeProbabilityDensity(nsamples, &phis[0], &thetas[0], &dens[0]); 
+        pr.computeProbabilityDensity(num_coord_samples_per_segment, &phis[0], &thetas[0], &dens[0]); 
 
         /** Set occluded to 0
          *
@@ -616,12 +656,13 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
          * */ 
         noccluded = 0; 
         max_dens = 0;
-        for (int i =0; i < nsamples; i++)
+        // for (int i =0; i < nsamples; i++)
+        for (int i =0; i < num_coord_samples_per_segment; i++)
         {
           if (occluded[i])
           {
             dens[i] = 0; 
-  //          printf("OCCLUDED\n"); 
+          //          printf("OCCLUDED\n"); 
             noccluded++; 
           }
           else if (dens[i] > max_dens)
@@ -630,7 +671,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
           }
         }
 
-    //    printf("%d/%d samples occluded in segment %d\n", noccluded, nsamples, seg); 
+        //    printf("%d/%d samples occluded in segment %d\n", noccluded, nsamples, seg); 
 
 
         /* Now we want to compute the integral  */
@@ -640,28 +681,32 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         {
           if (!debugfile->Get("triangles_payload")) debugfile->mkdir("triangles_payload"); 
           debugfile->cd("triangles_payload"); 
-          TGraph2D g2d (nsamples,&phis[0], &thetas[0], &dens[0]); 
-          g2d.Write(TString::Format("g%d",seg)); 
+          // TGraph2D g2d (nsamples,&phis[0], &thetas[0], &dens[0]); 
+          TGraph2D g2d (num_coord_samples_per_segment,&phis[0], &thetas[0], &dens[0]); 
+          // g2d.Write(TString::Format("g%d",seg)); 
+          g2d.Write(TString::Format("g%d", this_segment)); 
 
           if (!debugfile->Get("triangles_continent")) debugfile->mkdir("triangles_continent"); 
           debugfile->cd("triangles_continent"); 
 
-          TGraph2D g2d_continent (nsamples,&xs[0], &ys[0], &dens[0]); 
-          g2d_continent.Write(TString::Format("g%d",seg)); 
+          // TGraph2D g2d_continent (nsamples,&xs[0], &ys[0], &dens[0]); 
+          TGraph2D g2d_continent (num_coord_samples_per_segment,&xs[0], &ys[0], &dens[0]); 
+          g2d_continent.Write(TString::Format("g%d", this_segment)); 
 
         }
-
         bool enhance_flag = false;
         double scale = 0; 
-  #ifdef HAVE_DELAUNAY
-        ROOT::Math::Delaunay2D del (nsamples,&phis[0], &thetas[0], &dens[0]); 
+        #ifdef HAVE_DELAUNAY
+        // ROOT::Math::Delaunay2D del (nsamples,&phis[0], &thetas[0], &dens[0]); 
+        ROOT::Math::Delaunay2D del (num_coord_samples_per_segment,&phis[0], &thetas[0], &dens[0]); 
         del.FindAllTriangles(); 
         // the delaunay triangulation stupidly normalizes... have to unnormalize it
         double max_phi = -360000; 
         double min_phi = 360000; 
         double max_theta = -360000; 
         double min_theta = 360000; 
-        for (int i = 0; i < nsamples; i++) 
+        // for (int i = 0; i < nsamples; i++) 
+        for (int i = 0; i < num_coord_samples_per_segment; i++) 
         {
           if (phis[i] > max_phi) max_phi = phis[i]; 
           if (thetas[i] > max_theta) max_theta = thetas[i]; 
@@ -688,19 +733,18 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
             sum += darea; 
           }
         }
-  #else
-        double sum =-1; 
-        fprintf(stderr,"ROOT 5 not currently supported in Probability Map due to lack of ROOT/Math/Delaunay2D.h. Will be fixed someday if necessary. \n"); 
-  #endif
+        #else
+              double sum =-1; 
+              fprintf(stderr,"ROOT 5 not currently supported in Probability Map due to lack of ROOT/Math/Delaunay2D.h. Will be fixed someday if necessary. \n"); 
+        #endif
 
         seg_p = sum; 
-  //      printf("%d %g %d\n",seg, seg_p, noccluded); 
- 
-
+        //      printf("%d %g %d\n",seg, seg_p, noccluded); 
         if (p.verbosity > 2) 
         {
 
-          printf("p(seg) %d: = %g\n",  seg, seg_p); 
+          // printf("p(seg) %d: = %g\n",  seg, seg_p); 
+          printf("p(seg) %d: = %g\n",  this_segment, seg_p); 
 
         }
 
@@ -712,7 +756,8 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
           }
           else
           {
-            printf("OOPS %d %g %g\n", seg, scale, seg_p); 
+            // printf("OOPS %d %g %g\n", seg, scale, seg_p); 
+            printf("OOPS %d %g %g\n", this_segment, scale, seg_p); 
             seg_p = 1; 
           }
         }
@@ -723,25 +768,33 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
       if (occlusion) 
       {
-          occlusion->push_back(std::pair<int,double> ( seg, double(noccluded)/nsamples)); 
+          // occlusion->push_back(std::pair<int,double> ( seg, double(noccluded)/nsamples)); 
+          occlusion->push_back(Seg2Val(this_segment, double(noccluded) / num_coord_samples_per_segment)); 
       }
 
 
 
-      contribution.push_back(std::pair<int,double>(seg,seg_p)); 
-      if(max_densities) max_densities->push_back(std::pair<int,double>(seg, max_dens)); 
+      // contribution.push_back(std::pair<int,double>(seg,seg_p)); 
+      contribution.push_back(std::pair<int,double>(this_segment,seg_p)); 
+      // if(max_densities) max_densities->push_back(std::pair<int,double>(seg, max_dens)); 
+      if(max_densities) max_densities->push_back(std::pair<int,double>(this_segment, max_dens)); 
+
       /* if max density is above min_p, add the neighbors of this segment */ 
       if (max_dens >= min_p)
       {
         std::vector<int> new_neighbors;
-        segmentationScheme()->getNeighbors(seg, &new_neighbors); 
+        // segmentationScheme()->getNeighbors(seg, &new_neighbors); 
+        segmentationScheme()->getNeighbors(this_segment, &new_neighbors); 
         for (size_t j = 0; j < new_neighbors.size(); j++)
         {
           int new_seg = new_neighbors[j];
-          if (!used[new_seg])
+          // if (!used[new_seg])
+          if (!is_this_segment_checked.at(new_seg))
           {
-            used[new_seg] = segs_to_check.size(); 
-            segs_to_check.push_back(new_seg); 
+            // used[new_seg] = segs_to_check.size(); 
+            is_this_segment_checked.at(new_seg) = true;
+            // segs_to_check.push_back(new_seg); 
+            continent_segments_in_random_order.push_back(new_seg);
           }
         }
       }
