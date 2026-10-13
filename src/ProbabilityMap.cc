@@ -520,13 +520,17 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
     AntarcticCoord some_point_on_continent;
 
     // int nsamples = p.backwards_params.num_samples_per_bin; 
-    int num_coord_samples_per_segment = p.backwards_params.num_samples_per_bin; 
+    int nSamples_from_this_segment = p.backwards_params.num_samples_per_bin; 
     /* set up vectors for sample phis /thetas/ densities */ 
 
     //Figure out the enhancement steps; 
-    std::vector<int> enhancement_steps (1+p.backwards_params.max_enhance); 
+    using Perfect_Square = int;
+    // Every element (except maybe the first) in enhancement_steps is a perfect square.
+    // In addition, every element is at least twice as large as the previous one
+    // e.g. 2 4 9 25 64 144 289 625 1296
+    std::vector<Perfect_Square> enhancement_steps (1+p.backwards_params.max_enhance); 
     // enhancement_steps[0] = nsamples; 
-    enhancement_steps[0] = num_coord_samples_per_segment; 
+    enhancement_steps[0] = nSamples_from_this_segment; 
     for (int e = 1; e <= p.backwards_params.max_enhance; e++)
     {
         enhancement_steps[e] = pow( ceil (sqrt(enhancement_steps[e-1] * 2)),2); 
@@ -534,20 +538,20 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
     int max_samples = enhancement_steps[p.backwards_params.max_enhance]; 
 
-    std::vector<AntarcticCoord> samples(max_samples); 
-    std::vector<double> dens(max_samples);; 
-    std::vector<double> phis(max_samples);; 
-    std::vector<double> thetas(max_samples);; 
-    std::vector<double> xs(max_samples);; 
-    std::vector<double> ys(max_samples);; 
-    std::vector<bool> occluded(max_samples); 
+    fixed_size_vector<AntarcticCoord> samples(max_samples); 
+    fixed_size_vector<double> dens(max_samples);; 
+    fixed_size_vector<double> phis(max_samples);; 
+    fixed_size_vector<double> thetas(max_samples);; 
+    fixed_size_vector<double> xs(max_samples);; 
+    fixed_size_vector<double> ys(max_samples);; 
+    fixed_size_vector<bool> occluded(max_samples); 
 
     /** Loop over segments we need to check to see if p > cutoff */
     // while (nchecked < segs_to_check.size())
     while (num_segments_checked < continent_segments_in_random_order.size())
     {
       // int seg = segs_to_check[nchecked++]; 
-      int this_segment = continent_segments_in_random_order[num_segments_checked]; 
+      AntarcticMap_SegmentIdx this_segment = continent_segments_in_random_order[num_segments_checked]; 
       num_segments_checked++;
 
       bool done_with_this_segment = false; 
@@ -565,14 +569,14 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         if (enhance_factor) 
         {
           // nsamples = enhancement_steps[enhance_factor]; 
-          num_coord_samples_per_segment = enhancement_steps[enhance_factor]; 
-          if (p.verbosity > 0) printf("ENHANCE! To %d\n", num_coord_samples_per_segment); 
+          nSamples_from_this_segment = enhancement_steps[enhance_factor]; 
+          if (p.verbosity > 0) printf("ENHANCE! To %d\n", nSamples_from_this_segment); 
         }
 
         // segment into a bunch of positions
         // segmentationScheme()->sampleSegment(seg, nsamples, &samples[0], p.backwards_params.random_samples);  // do we want to randomize? i dunno. I'll decide later. 
         segmentationScheme()->sampleSegment(
-            this_segment, num_coord_samples_per_segment, &samples[0], p.backwards_params.random_samples
+            this_segment, nSamples_from_this_segment, &samples[0], p.backwards_params.random_samples
         );  // do we want to randomize? i dunno. I'll decide later. 
         
         // loop over the samples, 
@@ -582,13 +586,14 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         //
         //#pragma omp parallel for
         // for (int i = 0; i < nsamples; i++)
-        for (int i = 0; i < num_coord_samples_per_segment; i++)
+        for (int i = 0; i < nSamples_from_this_segment; i++)
         {
           //This computes the payload in source coords and vice versa
           PayloadParameters pp(pat.asAntarcticCoord(), samples[i], pat.asPayloadAttitude(), p.refract); 
 
 
           // pos = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
+          // TODO: this variable is not needed, use pp's field instead?
           some_point_on_continent = samples[i].as(AntarcticCoord::STEREOGRAPHIC); 
 
           if (p.verbosity > 3) 
@@ -646,7 +651,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
       
         /* compute the probabilities for each set of angles */ 
         // pr.computeProbabilityDensity(nsamples, &phis[0], &thetas[0], &dens[0]); 
-        pr.computeProbabilityDensity(num_coord_samples_per_segment, &phis[0], &thetas[0], &dens[0]); 
+        pr.computeProbabilityDensity(nSamples_from_this_segment, &phis[0], &thetas[0], &dens[0]); 
 
         /** Set occluded to 0
          *
@@ -657,7 +662,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         noccluded = 0; 
         max_dens = 0;
         // for (int i =0; i < nsamples; i++)
-        for (int i =0; i < num_coord_samples_per_segment; i++)
+        for (int i =0; i < nSamples_from_this_segment; i++)
         {
           if (occluded[i])
           {
@@ -682,7 +687,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
           if (!debugfile->Get("triangles_payload")) debugfile->mkdir("triangles_payload"); 
           debugfile->cd("triangles_payload"); 
           // TGraph2D g2d (nsamples,&phis[0], &thetas[0], &dens[0]); 
-          TGraph2D g2d (num_coord_samples_per_segment,&phis[0], &thetas[0], &dens[0]); 
+          TGraph2D g2d (nSamples_from_this_segment,&phis[0], &thetas[0], &dens[0]); 
           // g2d.Write(TString::Format("g%d",seg)); 
           g2d.Write(TString::Format("g%d", this_segment)); 
 
@@ -690,7 +695,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
           debugfile->cd("triangles_continent"); 
 
           // TGraph2D g2d_continent (nsamples,&xs[0], &ys[0], &dens[0]); 
-          TGraph2D g2d_continent (num_coord_samples_per_segment,&xs[0], &ys[0], &dens[0]); 
+          TGraph2D g2d_continent (nSamples_from_this_segment,&xs[0], &ys[0], &dens[0]); 
           g2d_continent.Write(TString::Format("g%d", this_segment)); 
 
         }
@@ -698,7 +703,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         double scale = 0; 
         #ifdef HAVE_DELAUNAY
         // ROOT::Math::Delaunay2D del (nsamples,&phis[0], &thetas[0], &dens[0]); 
-        ROOT::Math::Delaunay2D del (num_coord_samples_per_segment,&phis[0], &thetas[0], &dens[0]); 
+        ROOT::Math::Delaunay2D del (nSamples_from_this_segment,&phis[0], &thetas[0], &dens[0]); 
         del.FindAllTriangles(); 
         // the delaunay triangulation stupidly normalizes... have to unnormalize it
         double max_phi = -360000; 
@@ -706,7 +711,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
         double max_theta = -360000; 
         double min_theta = 360000; 
         // for (int i = 0; i < nsamples; i++) 
-        for (int i = 0; i < num_coord_samples_per_segment; i++) 
+        for (int i = 0; i < nSamples_from_this_segment; i++) 
         {
           if (phis[i] > max_phi) max_phi = phis[i]; 
           if (thetas[i] > max_theta) max_theta = thetas[i]; 
@@ -769,15 +774,15 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
       if (occlusion) 
       {
           // occlusion->push_back(std::pair<int,double> ( seg, double(noccluded)/nsamples)); 
-          occlusion->push_back(Seg2Val(this_segment, double(noccluded) / num_coord_samples_per_segment)); 
+          occlusion->push_back(Seg2Val(this_segment, double(noccluded) / nSamples_from_this_segment)); 
       }
 
 
 
       // contribution.push_back(std::pair<int,double>(seg,seg_p)); 
-      contribution.push_back(std::pair<int,double>(this_segment,seg_p)); 
+      contribution.push_back(Seg2Val(this_segment,seg_p)); 
       // if(max_densities) max_densities->push_back(std::pair<int,double>(seg, max_dens)); 
-      if(max_densities) max_densities->push_back(std::pair<int,double>(this_segment, max_dens)); 
+      if(max_densities) max_densities->push_back(Seg2Val(this_segment, max_dens)); 
 
       /* if max density is above min_p, add the neighbors of this segment */ 
       if (max_dens >= min_p)
@@ -863,7 +868,7 @@ double  pueo::UCorrelator::ProbabilityMap::computeContributions(const EventSumma
 
       double dens = pr.computeProbabilityDensity( base_phi, pp.source_theta); 
  
-      base_contribution->push_back(std::pair<int,double> (ibase, dens)); 
+      base_contribution->push_back(Base2Val(ibase, dens)); 
     }
 
   }
