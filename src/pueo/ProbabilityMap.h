@@ -109,18 +109,18 @@ public:
     {
       BackwardParams() 
       {
-        num_samples_per_bin = 9; 
+        num_samples_per_bin = 9; // initial number of samples to grab from a map segment, should be a perfect square
         enhance_threshold = 0.01; //threshold to enhance if any delauanay region has an area greater than this 
-        max_enhance = 4; 
+        max_enhance_levels = 4; // determines the length of the array that stores num_samples_per_bin in increasing order
         el_cutoff = 0; 
-        random_samples = false; 
+        random_sampling_enabled = false; 
       }
 
       int num_samples_per_bin; 
       double el_cutoff; 
       double enhance_threshold;
-      int max_enhance; 
-      bool random_samples;
+      int max_enhance_levels; 
+      bool random_sampling_enabled;
     } backwards_params; 
 
     double max_dphi; 
