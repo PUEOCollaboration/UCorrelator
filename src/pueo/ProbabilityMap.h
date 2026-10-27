@@ -55,7 +55,7 @@ public:
       : seg(&defaultSegmentationScheme()), 
       point(&defaultPointingResolutionModel()), 
       level_thresholds(defaultLevelThresholds, defaultLevelThresholds + sizeof(defaultLevelThresholds) / sizeof(*defaultLevelThresholds)), 
-      dataset(RampdemReader::rampdem), 
+      dataset(RampdemReader::surface), 
       refract(0), 
       maximum_distance(20),
       min_p_on_continent (1e-3) , 
