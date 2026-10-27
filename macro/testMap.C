@@ -1,19 +1,35 @@
-#include "AnitaConventions.h" 
-#include "AnitaEventSummary.h" 
-#include "AnitaDataset.h" 
+#if !defined(__CLING__)
+// For some fucked up reason, CLING doesn't like this header,
+// so we'll only include it if we want to compile via g++ and hide it if running macro through CLING.
+#include "pueo/Conventions.h"
+#endif
+#include "pueo/EventSummary.h" 
+#include "pueo/Dataset.h" 
+#include "pueo/ProbabilityMap.h"
+#include "pueo/PointingResolutionModel.h"
 
-UCorrelator::ProbabilityMap* testMap(int run, int event_number, int pol = 1, int peak = 0) 
+#include "TF1.h"
+#include "TFile.h"
+#include "TTree.h"
+
+
+void testMap() 
 {
+  int run=802;
+  int event_number=197894;
+  pueo::pol::pol_t pol = pueo::pol::kVertical;
+  int peak = 0;
 
-  TChain c("anita3"); 
-  c.Add(TString::Format("a3all/%d*.root",run)); 
-  c.BuildIndex("eventNumber"); 
-  AnitaEventSummary * sum = 0; 
-  Adu5Pat * pat = 0; 
-  c.SetBranchAddress("summary",&sum); 
-  c.SetBranchAddress("pat",&pat); 
+  TFile myFile(Form("/work/rootified/eventSummaries/%d.root", run));
+  TTree * myTree = myFile.Get<TTree>("eventTree");
+  myTree->BuildIndex("eventNumber");
 
-  c.GetEntryWithIndex(event_number); 
+  pueo::EventSummary * mySummary = nullptr;
+  myTree->SetBranchAddress("eventSummary", &mySummary);
+  myTree->GetEntryWithIndex(event_number); 
+
+  pueo::nav::Attitude location;
+  location = mySummary->location.att();
 
   TFile f("debug_data.root","RECREATE"); 
 
@@ -25,12 +41,12 @@ UCorrelator::ProbabilityMap* testMap(int run, int event_number, int pol = 1, int
   f_dtheta.SetParameter(1, 0.2102); 
   f_dphi.SetParameter(0, 1.065); 
   f_dphi.SetParameter(1, 0.2479); 
-  UCorrelator::PointingResolutionParSNRModel * m1 = new UCorrelator::PointingResolutionParSNRModel(f_dtheta, f_dphi, true,true);
-  UCorrelator::PointingResolutionModelPlusHeadingError*  m = new UCorrelator::PointingResolutionModelPlusHeadingError(20, m1); 
+  pueo::UCorrelator::PointingResolutionParSNRModel * m1 = new pueo::UCorrelator::PointingResolutionParSNRModel(f_dtheta, f_dphi, true,true);
+  pueo::UCorrelator::PointingResolutionModelPlusHeadingError*  m = new pueo::UCorrelator::PointingResolutionModelPlusHeadingError(20, m1); 
 
   Refraction::SphRay * ref = new Refraction::SphRay; 
 
-  UCorrelator::ProbabilityMap::Params p; 
+  pueo::UCorrelator::ProbabilityMap::Params p; 
   p.refract = ref; 
   p.seg = g; 
   p.point = m; 
@@ -39,14 +55,19 @@ UCorrelator::ProbabilityMap* testMap(int run, int event_number, int pol = 1, int
 //  p.backwards_params.num_samples_per_bin=16;
   p.verbosity = 4;
 
-  printf("THETA: %g\n", sum->peak[pol][peak].theta); 
-  UCorrelator::ProbabilityMap *map = new UCorrelator::ProbabilityMap(&p); 
-  map->add( sum, pat, AnitaPol::AnitaPol_t(pol), peak,1,&f); 
+  printf("THETA: %g\n", mySummary->peak[pol][peak].theta); 
+  pueo::UCorrelator::ProbabilityMap *map = new pueo::UCorrelator::ProbabilityMap(&p); 
+  map->add(mySummary, &location, pol, peak,1,&f); 
   map->segmentationScheme()->Draw("colz", map->getProbSums(true)); 
+  //
+  // f.cd(); 
+  // map->Write("map"); 
+  //
+  // return map ; 
 
-  f.cd(); 
-  map->Write("map"); 
+}
 
-  return map ; 
-
+int main(){
+  testMap();
+  return 0;
 }
