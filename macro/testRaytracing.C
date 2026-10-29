@@ -56,6 +56,7 @@ void testRaytracing(){
     &myRaytraceResult,
     payload_attitude.asPayloadAttitude() // payload heading etc
   );
+  std::cout << "raytrace _status: " << _status << "\n";
 
   AntarcticCoord MaybeTaylorDome = myRaytraceResult.source.as(AntarcticCoord::WGS84);
 
