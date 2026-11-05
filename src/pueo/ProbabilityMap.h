@@ -310,7 +310,10 @@ private:
   VecB<double> base_sums_norm; 
 
   //guards the add method (everything else doesn't touch the internals) 
-  TMutex m; 
+  TMutex m; //!
+  // Note: //! tells ROOT to not store the mutex when we invoke TObject's Write() function.
+  // Otherwise you'd see a weird error that goes like the following:
+  // "Error in <TVirtualMutex::Streamer>: version id <=0 in ClassDef, dummy Streamer() called"
 
 
   ClassDefNV(ProbabilityMap, 1); 
