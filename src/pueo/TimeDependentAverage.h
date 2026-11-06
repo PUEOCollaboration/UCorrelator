@@ -94,7 +94,9 @@ namespace UCorrelator
       TH1I * norms; 
       TH1I * norms_minbias; 
 
-      mutable TMutex m; 
+      // The following error arises whenever we write the object to disk.
+      // Error <TVirtualMutex::Streamer>: version id <=0 in ClassDef, dummy Streamer() called
+      mutable TMutex m; //! The fix is to exclude mutex with a slash-slash-bang
       mutable TH2D * peakiness[k::NUM_ANTS][2]; 
       mutable TH2D * peakiness_minbias[k::NUM_ANTS][2]; 
       TString fname; 

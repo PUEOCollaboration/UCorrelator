@@ -169,6 +169,7 @@ pueo::UCorrelator::PointingResolution * pueo::UCorrelator::PointingResolutionMod
     dphi = sqrt(dphi*dphi + stdev*stdev + mean*mean); //worsen the resolution 
   }
 
+  // note that this is not new but a placement new
   new (point)  PointingResolution(sum->peak[pol][peak].phi, sum->peak[pol][peak].theta, dphi, point->getdTheta(), point->getCorr()); 
 
   return point; 

@@ -6,7 +6,7 @@
   gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libRootFftwWrapper.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libRootFftwWrapper.dylib");
   gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libpueoEvent.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libpueoEvent.dylib"); 
   gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libAntarcticaRoot.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libAntarcticaRoot.dylib"); 
-  gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libpueoAnalysis.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libpueoAnalysis.dylib"); 
+  gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libpueoAnalysisFramework.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libpueoAnalysis.dylib"); 
   gSystem->Load("${PUEO_UTIL_INSTALL_DIR}/lib/libUCorrelator.so") && gSystem->Load("$PUEO_UTIL_INSTALL_DIR/lib/libUCorrelator.dylib"); 
 //  gSystem->Load("build/libUCorrelator.so"); 
 

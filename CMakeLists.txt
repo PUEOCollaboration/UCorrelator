@@ -81,9 +81,15 @@ target_link_libraries(${PROJECT_NAME} PUBLIC PUEO::pueoAnalysisFramework)
 # CERN ROOT dictionary generation and installation
 set(DICTNAME G__${PROJECT_NAME})
 root_generate_dictionary(${DICTNAME} ${HEADER_FILES} MODULE ${PROJECT_NAME} LINKDEF LinkDef.h)
+# installing CERN ROOT's _rdict.pcm file
+# Do make sure to install the .rootmap file,
+# otherwise very confusing errors can error when you run root macros. See:
+# https://root-forum.cern.ch/t/base-class-has-incomplete-type-if-i-running-from-rootscript/62827/4
 install(
-  FILES "${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}_rdict.pcm"
-  DESTINATION lib
+  FILES 
+    "${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}_rdict.pcm"
+    "${CMAKE_CURRENT_BINARY_DIR}/lib${PROJECT_NAME}.rootmap"
+  DESTINATION lib # force install to lib instead of letting the system choose b/w lib vs lib64
 )
 
 ## ------------- Installation -------------
@@ -120,6 +126,8 @@ if(NOT CMAKE_BUILD_TYPE)
   # use warning flags in RelWithDebInfo mode, which is set to be the default mode
   target_compile_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:RelWithDebInfo>:-Wall -Wextra -Wno-unused-function>)
 endif()
+add_subdirectory(macro)
+
 
 # option (ENABLE_LIBCONFIG "Enable reading from config file (requires libconfig)" OFF)
 # if (ENABLE_LIBCONFIG)
